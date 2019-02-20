@@ -18,7 +18,7 @@ type Game:
 
 type Round:
     required property choices -> array<str>
-    property chosen_word -> str
+    property choice -> str
     required link artist -> User
     multi link scores -> Score
 
