@@ -1,0 +1,15 @@
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+    - 8001:8001
+    links:
+    - db
+  db:
+    image: edgedb/edgedb-preview
+    volumes:
+    - ./database/data:/data
+    environment:
+    - USER=dixtionary
+    - DATABASE=dixtionary
