@@ -20,7 +20,8 @@ class Request(NamedTuple):
     @staticmethod
     def from_message(message, *, base_request: SanicRequest):
         kwargs = json.loads(message)
-        return Request(**kwargs, base_request=base_request)
+        kwargs['base_request'] = base_request
+        return Request(**kwargs)
 
     @property
     def app(self):
