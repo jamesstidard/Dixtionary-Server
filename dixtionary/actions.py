@@ -17,7 +17,7 @@ class Score(g.ObjectType):
 class Round(g.ObjectType):
     id = g.ID(required=True)
     choices = g.List(g.String, required=True)
-    chosen_word = g.String(required=False)
+    choice = g.String(required=False)
     artist = g.Field(User, required=True)
     scores = g.List(Score)
 
