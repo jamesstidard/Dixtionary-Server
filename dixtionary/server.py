@@ -1,10 +1,8 @@
-import graphene
-
 from sanic import Sanic
 from sanic.response import json
 
-from .model import Query
-from .http import http_handler
+from .model import make_schema
+from .http import graphql_handler
 from .websocket import websocket_handler
 
 
@@ -14,13 +12,13 @@ async def create_app(config):
 
     @app.listener('before_server_start')
     async def before_server_start(app, loop):
-        app.schema = graphene.Schema(Query)
+        app.schema = make_schema()
 
     # Favicon
     # app.static('/favicon.ico', 'favicon.ico')
 
     # API
-    app.add_route(http_handler, '/http')
+    app.add_route(graphql_handler, '/graphql')
     # app.add_websocket_route(websocket_handler, '/ws')
 
     return app
