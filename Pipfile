@@ -17,6 +17,7 @@ sanic = "*"
 sanic-envconfig = "*"
 aiostream = "*"
 graphene = "*"
+itsdangerous = "*"
 
 [requires]
 python_version = "3.7"

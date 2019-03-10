@@ -2,8 +2,8 @@ from sanic import Sanic
 from sanic.response import json
 
 from .model import make_schema
-from .http import graphql_handler
-from .websocket import websocket_handler
+from .handlers.http import graphql_handler
+from .handlers.websocket import websocket_handler
 
 
 async def create_app(config):
@@ -12,6 +12,7 @@ async def create_app(config):
 
     @app.listener('before_server_start')
     async def before_server_start(app, loop):
+        app.state = {}
         app.schema = make_schema()
 
     # Favicon

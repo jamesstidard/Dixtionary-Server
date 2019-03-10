@@ -2,6 +2,8 @@ from uuid import uuid4
 
 import graphene as g
 
+from sanic.request import Request
+
 from .query import User
 
 
@@ -13,6 +15,7 @@ class Login(g.Mutation):
 
     def mutate(self, info, name):
         user = User(uuid=uuid4().hex, name=name)
+        request: Request = info.context
         return Login(me=user)
 
 
