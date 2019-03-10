@@ -2,8 +2,6 @@ from uuid import uuid4
 
 import graphene as g
 
-from sanic.request import Request
-
 from .query import User
 
 
