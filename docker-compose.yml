@@ -8,8 +8,11 @@ services:
     - db
   db:
     image: edgedb/edgedb-preview
+    ports:
+    - 5656:5656
     volumes:
     - ./database/data:/data
     environment:
     - USER=dixtionary
     - DATABASE=dixtionary
+    command: edgedb

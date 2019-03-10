@@ -8,7 +8,6 @@ from aiostream import stream
 from sanic.websocket import ConnectionClosed
 from sanic.exceptions import InvalidUsage, SanicException, ServerError
 
-from dixtionary.model import Response, Request
 from dixtionary.utils.asynchronous import yield_with, keep_awaiting
 
 CLIENT_MESSAGE = object()
@@ -56,7 +55,7 @@ async def websocket_handler(request, ws):
 
             elif request_key is CLIENT_MESSAGE:
                 try:
-                    task_request = Request.from_message(result, base_request=request)
+                    task_request = Task.from_message(result, base_request=request)
                 except SanicException as e:
                     if request.app.config.TE_DEBUG:
                         traceback.print_exc()
@@ -77,7 +76,7 @@ async def websocket_handler(request, ws):
                     # Add to task queue
                     await put(key=task_request, task=subdued_task)
 
-            elif isinstance(request_key, Request) and isinstance(result, ContainedException):
+            elif isinstance(request_key, Task) and isinstance(result, ContainedException):
                 task_request = request_key
                 # noinspection PyBroadException
                 try:
@@ -93,7 +92,7 @@ async def websocket_handler(request, ws):
                     response = Response(uuid=task_request.uuid, error=ServerError())
                     await ws.send(json.dumps(response.asdict()))
 
-            elif isinstance(request_key, Request):
+            elif isinstance(request_key, Task):
                 task_request = request_key
                 # return task result to client
                 response = Response(uuid=task_request.uuid, result=result)

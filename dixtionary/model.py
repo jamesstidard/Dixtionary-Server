@@ -1,66 +1,62 @@
 import json
-from inspect import isawaitable, isasyncgen
-from typing import Optional, NamedTuple, Any
 
-from sanic.request import Request as SanicRequest
-from sanic.exceptions import InvalidUsage, SanicException
+import graphene as g
 
 
-class Request(NamedTuple):
-    uuid: Optional[str]
-    action: str
-    kwargs: dict
-    base_request: SanicRequest
-
-    @staticmethod
-    def from_request(request, *, action):
-        kwargs = {str(k): json.loads(v) for k, v in request.raw_args.items()}
-        return Request(uuid=None, action=action, kwargs=kwargs, base_request=request)
-
-    @staticmethod
-    def from_message(message, *, base_request: SanicRequest):
-        kwargs = json.loads(message)
-        kwargs['base_request'] = base_request
-        return Request(**kwargs)
-
-    @property
-    def app(self):
-        return self.base_request.app
-
-    async def run(self):
-        try:
-            action = self.action.lower()
-        except KeyError:
-            raise InvalidUsage(dev_message=f'Unknown action: "{self.action}"')
-
-        if hasattr(action, '__pass_request__'):
-            result = action(self, **self.kwargs)
-        else:
-            result = action(**self.kwargs)
-
-        if isawaitable(result):
-            yield await result
-        elif isasyncgen(result):
-            async for r in result:
-                yield r
-        else:
-            yield result
+class User(g.ObjectType):
+    id = g.ID(required=True)
+    name = g.String(required=True)
 
 
-class Response(NamedTuple):
-    uuid: Optional[str]
-    result: Any = None
-    error: SanicException = None
+class Score(g.ObjectType):
+    id = g.ID(required=True)
+    user = g.Field(User, required=True)
+    value = g.Int(required=True)
 
-    def asdict(self):
-        result = {
-            'uuid': self.uuid,
-            'result': self.result,
-            'error': None,
-        }
-        if self.error:
-            result['error'] = {
-                'status_code': self.error.status_code,
-                'args': ', '.join(self.error.args),
-            }
-        return result
+
+class Round(g.ObjectType):
+    id = g.ID(required=True)
+    choices = g.List(g.String, required=True)
+    choice = g.String(required=False)
+    artist = g.Field(User, required=True)
+    scores = g.List(Score)
+
+
+class Game(g.ObjectType):
+    id = g.ID(required=True)
+    rounds = g.List(Round)
+
+
+class Room(g.ObjectType):
+    id = g.ID(required=True)
+    name = g.String(required=True)
+    owner = g.Field(User, required=True)
+    password = g.String(required=False)
+    members = g.List(User)
+    capacity = g.Int(required=True)
+    game = g.Field(Game, required=True)
+
+
+class Query(g.ObjectType):
+    me = g.Field(User)
+    rooms = g.List(Room)
+
+    def resolve_me(self, info):
+        return User(id=1234, name='James')
+
+    def resolve_rooms(self, info):
+        return [
+            Room(id=1234, name='hell', owner=User(id=1, name='James'), capacity=10, game=Game(id=1)),
+            Room(id=1234, name='haven', owner=User(id=1, name='James'), capacity=10, game=Game(id=1)),
+        ]
+
+
+schema = g.Schema(query=Query, auto_camelcase=False, )
+# print(schema)
+
+# result = schema.execute('{ me { id, name }, rooms { name, capacity } }')
+# print(json.dumps(result.data, indent=2))  # "Hello stranger"
+#
+# # or passing the argument in the query
+# result = schema.execute('{ hello (argument: "graph") }')
+# print(result.data['hello']) # "Hello graph"

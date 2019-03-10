@@ -1,3 +1,5 @@
+START TRANSACTION;
+CREATE MIGRATION m1 TO eschema $$
 
 type User:
     required property name -> str
@@ -26,3 +28,7 @@ type Round:
 type Score:
     link user -> User
     required property value -> int16
+
+$$;
+COMMIT MIGRATION m1;
+COMMIT;
