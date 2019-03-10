@@ -15,7 +15,7 @@ class Login(g.Mutation):
 
     def mutate(self, info, name):
         user = User(uuid=uuid4().hex, name=name)
-        request: Request = info.context
+        info.context.current_user = user
         return Login(me=user)
 
 

@@ -42,8 +42,11 @@ class Query(g.ObjectType):
     rooms = g.List(Room)
 
     def resolve_me(self, info):
-        request: Request = info.context
-        return User(uuid=1234, name=f'James@{request.host}')
+        user = info.context.current_user
+        if user:
+            return User(uuid=user.uuid, name=user.name)
+        else:
+            raise ValueError("No current user.")
 
     def resolve_rooms(self, info):
         return [
