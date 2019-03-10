@@ -1,13 +1,8 @@
-from sanic.request import Request as Request
+from sanic.request import Request
 from sanic.response import json
-
-from .model import schema
 
 
 async def http_handler(request: Request):
-    query = request.raw_args.get('q')
-    result = schema.execute(query)
-    return json(result.data)
-
-import os
-print(os.environ)
+    query = request.raw_args.get('query')
+    result = request.app.schema.execute(query, context=request)
+    return json(result.data, indent=2)

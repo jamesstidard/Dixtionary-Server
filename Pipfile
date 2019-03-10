@@ -17,7 +17,6 @@ sanic = "*"
 sanic-envconfig = "*"
 aiostream = "*"
 graphene = "*"
-edgedb = {editable = true,git = "https://github.com/edgedb/edgedb-python",ref = "master"}
 
 [requires]
 python_version = "3.7"

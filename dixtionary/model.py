@@ -51,12 +51,17 @@ class Query(g.ObjectType):
         ]
 
 
-schema = g.Schema(query=Query, auto_camelcase=False, )
-# print(schema)
+def main():
+    schema = g.Schema(query=Query, auto_camelcase=False, )
+    print(schema)
 
-# result = schema.execute('{ me { id, name }, rooms { name, capacity } }')
-# print(json.dumps(result.data, indent=2))  # "Hello stranger"
-#
-# # or passing the argument in the query
-# result = schema.execute('{ hello (argument: "graph") }')
-# print(result.data['hello']) # "Hello graph"
+    result = schema.execute('{ me { id, name }, rooms { name, capacity } }')
+    print(json.dumps(result.data, indent=2))  # "Hello stranger"
+
+    # or passing the argument in the query
+    result = schema.execute('{ hello (argument: "graph") }')
+    print(result.data['hello'])  # "Hello graph"
+
+
+if __name__ == '__main__':
+    main()
