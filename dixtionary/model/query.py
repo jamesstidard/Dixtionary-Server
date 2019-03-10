@@ -1,7 +1,5 @@
 import graphene as g
 
-from sanic.request import Request
-
 
 class User(g.ObjectType):
     uuid = g.ID(required=True)
