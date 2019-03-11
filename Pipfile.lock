@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8834ff80e19b212a84c9b8e1bc834dc41e25d95b4b35e6a0bcd27f09fdbdd47d"
+            "sha256": "e540c52b35019e6695720ccd733982000bfcf6dbcca944e25abdca0aa75a690b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -128,12 +128,27 @@
             "index": "pypi",
             "version": "==18.12.0"
         },
+        "sanic-cors": {
+            "hashes": [
+                "sha256:0fbc4dab23f5e74bd0280863a92d60cffd5961186838b3f0821794a5528b0cd5",
+                "sha256:cd679c404c829656a892766fdbc9446c9560d0d9e9d407d582e6224f0c32e22c"
+            ],
+            "index": "pypi",
+            "version": "==0.9.8"
+        },
         "sanic-envconfig": {
             "hashes": [
                 "sha256:93570c20da432af9cbbe74ee929a3108d93db8d9291758f84d52b2af0505b27d"
             ],
             "index": "pypi",
             "version": "==1.0.1"
+        },
+        "sanic-plugins-framework": {
+            "hashes": [
+                "sha256:59bcb23b46a7c03443570625f84e8f0d31c9869e32f871e680afbc68fc86887f",
+                "sha256:5ad6f40b2a7dedb35a4760df55f4e05c90b6eca4b2f63c02b7b1c6a5f7da094a"
+            ],
+            "version": "==0.7.0"
         },
         "six": {
             "hashes": [

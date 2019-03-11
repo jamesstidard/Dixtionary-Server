@@ -2,6 +2,8 @@ from uuid import uuid4
 
 import graphene as g
 
+from itsdangerous import Serializer
+
 from .query import User
 
 
@@ -9,12 +11,13 @@ class Login(g.Mutation):
     class Arguments:
         name = g.String()
 
-    me = g.Field(lambda: User)
+    token = g.String()
 
     def mutate(self, info, name):
         user = User(uuid=uuid4().hex, name=name)
-        info.context.current_user = user
-        return Login(me=user)
+        serializer = Serializer(info.context.app.config.COOKIE_SECRET)
+        token = serializer.dumps(vars(user))
+        return Login(token=token)
 
 
 class Mutation(g.ObjectType):
