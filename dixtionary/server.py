@@ -1,11 +1,13 @@
+import aioredis
+
 from sanic import Sanic
-from sanic.response import json
 
 from sanic_cors import CORS
 
 from .model import make_schema
+from .extensions import GraphQL, Redis
 from .handlers.http import graphql_handler
-from .handlers.websocket import websocket_handler
+# from .handlers.websocket import websocket_handler
 
 
 async def create_app(config):
@@ -13,11 +15,8 @@ async def create_app(config):
     app.config.from_object(config)
 
     CORS(app, automatic_options=True)
-
-    @app.listener('before_server_start')
-    async def before_server_start(app, loop):
-        app.state = {}
-        app.schema = make_schema()
+    GraphQL(app, schema=make_schema())
+    Redis(app, address=app.config.DATABASE_URL)
 
     # Favicon
     # app.static('/favicon.ico', 'favicon.ico')

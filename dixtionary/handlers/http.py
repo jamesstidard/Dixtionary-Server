@@ -13,7 +13,7 @@ async def graphql_handler(request: Request):
         message = f"{request.method} not implemented"
         raise NotImplementedError(message)
 
-    result = request.app.schema.execute(
+    result = request.app.graphql.execute(
         request_string=payload.get('query'),
         operation_name=payload.get('operationName'),
         variables=payload.get('variables'),

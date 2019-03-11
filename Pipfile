@@ -19,6 +19,7 @@ aiostream = "*"
 graphene = "*"
 itsdangerous = "*"
 sanic-cors = "*"
+aioredis = "*"
 
 [requires]
 python_version = "3.7"
