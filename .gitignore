@@ -107,6 +107,8 @@ coverage.xml
 *.pot
 
 # Django stuff:
+apollo.config.js
+
 *.log
 local_settings.py
 db.sqlite3
