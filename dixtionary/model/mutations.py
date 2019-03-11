@@ -15,7 +15,7 @@ class Login(g.Mutation):
 
     def mutate(self, info, name):
         user = User(uuid=uuid4().hex, name=name)
-        serializer = Serializer(info.context.app.config.COOKIE_SECRET)
+        serializer = Serializer(info.context.app.config.SECRET)
         token = serializer.dumps(vars(user))
         return Login(token=token)
 
