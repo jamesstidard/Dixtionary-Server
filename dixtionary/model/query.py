@@ -25,6 +25,12 @@ class Game(g.ObjectType):
     rounds = g.List(Round)
 
 
+class Message(g.ObjectType):
+    uuid = g.ID(required=True)
+    time = g.DateTime(required=True)
+    body = g.String(required=True)
+
+
 class Room(g.ObjectType):
     uuid = g.ID(required=True)
     name = g.String(required=True)
@@ -33,6 +39,7 @@ class Room(g.ObjectType):
     members = g.List(User)
     capacity = g.Int(required=True)
     game = g.Field(Game, required=True)
+    chat = g.List(Message)
 
 
 class Query(g.ObjectType):

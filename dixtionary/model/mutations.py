@@ -65,6 +65,23 @@ class UpdateRoom(g.Mutation):
         return room
 
 
+class DeleteRoom(g.Mutation):
+    class Arguments:
+        uuid = g.ID(required=True)
+
+    done = g.Boolean()
+
+    def mutate(self, info, uuid):
+        room = None  # TODO: info.context.app.redis.get(...)
+        user = info.context.current_user
+
+        if room.owner != user:
+            raise ValueError("Not your room to delete")
+
+        # TODO: info.context.app.redis.del(...)
+        return True
+
+
 class Mutation(g.ObjectType):
     login = Login.Field()
     insert_room = InsertRoom.Field()
