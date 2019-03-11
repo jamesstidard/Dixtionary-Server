@@ -86,3 +86,4 @@ class Mutation(g.ObjectType):
     login = Login.Field()
     insert_room = InsertRoom.Field()
     update_room = UpdateRoom.Field()
+    delete_room = DeleteRoom.Field()
