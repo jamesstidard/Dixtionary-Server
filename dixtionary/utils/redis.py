@@ -12,8 +12,7 @@ def _default(obj):
 def dumps(entity: graphene.ObjectType):
     type_ = str(type(entity))
     key = entity.uuid
-    value = {k: v for k, v in vars(entity).items() if v is not None}
-    value = json.dumps(value, default=_default)
+    value = json.dumps(vars(entity), default=_default)
     return type_, key, value
 
 
