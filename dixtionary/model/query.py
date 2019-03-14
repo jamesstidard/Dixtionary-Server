@@ -1,5 +1,7 @@
 import graphene as g
 
+from dixtionary.utils import redis
+
 
 class User(g.ObjectType):
     uuid = g.ID(required=True)
@@ -41,10 +43,15 @@ class Room(g.ObjectType):
     game = g.Field(Game, required=True)
     chat = g.List(Message)
 
+    async def resolve(self, info, uuid):
+        data = await info.context.request.app.redis.hget(str(Room), uuid)
+        room = redis.loads(data)
+        return Room(**room)
+
 
 class Query(g.ObjectType):
-    me = g.Field(User, description='The current user')
-    rooms = g.List(Room)
+    me = g.Field(User, description='Who are you?')
+    rooms = g.List(Room, description='Game rooms')
 
     def resolve_me(self, info):
         user = info.context.current_user
@@ -53,8 +60,6 @@ class Query(g.ObjectType):
         else:
             raise ValueError("No current user.")
 
-    def resolve_rooms(self, info):
-        return [
-            Room(uuid=1234, name='hell', owner=User(uuid=1, name='James'), capacity=10, game=Game(uuid=1)),
-            Room(uuid=1234, name='haven', owner=User(uuid=1, name='James'), capacity=10, game=Game(uuid=1)),
-        ]
+    async def resolve_rooms(self, info):
+        uuids = await info.context.request.app.redis.hkeys(str(Room))
+        return [Room().resolve(info, uuid) for uuid in uuids]

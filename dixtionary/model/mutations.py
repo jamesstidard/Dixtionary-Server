@@ -5,6 +5,7 @@ import graphene as g
 from itsdangerous import Serializer
 
 from .query import User, Room, Game
+from dixtionary.utils import redis
 
 
 class Login(g.Mutation):
@@ -23,13 +24,14 @@ class Login(g.Mutation):
 class InsertRoom(g.Mutation):
     class Arguments:
         name = g.String(required=True)
-        password = g.String(required=False)
-        capacity = g.Int(required=True, default_value=8)
+        password = g.String(required=False, default_value=None)
+        capacity = g.Int(required=False, default_value=8)
 
     Output = Room
 
-    def mutate(self, info, name, password, capacity):
+    async def mutate(self, info, name, password=None, capacity=None):
         user = info.context.current_user
+        game = Game(uuid=uuid4().hex)
         room = Room(
             uuid=uuid4().hex,
             name=name,
@@ -37,11 +39,10 @@ class InsertRoom(g.Mutation):
             password=password,
             members=[user],
             capacity=capacity,
-            game=Game(
-                uuid=uuid4().hex
-            ),
+            game=game,
         )
-        # TODO: info.context.app.redis.set(...)
+        await info.context.request.app.redis.hmset(*redis.dumps(game))
+        await info.context.request.app.redis.hmset(*redis.dumps(room))
         return room
 
 
@@ -69,7 +70,7 @@ class DeleteRoom(g.Mutation):
     class Arguments:
         uuid = g.ID(required=True)
 
-    done = g.Boolean()
+    ok = g.Boolean()
 
     def mutate(self, info, uuid):
         room = None  # TODO: info.context.app.redis.get(...)

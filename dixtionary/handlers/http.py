@@ -1,7 +1,10 @@
 from sanic.request import Request
 from sanic.response import json
 
+from graphql.execution.executors.asyncio import AsyncioExecutor
+
 from dixtionary.middleware import authorize
+from dixtionary.model import Context
 
 
 async def graphql_handler(request: Request):
@@ -13,12 +16,14 @@ async def graphql_handler(request: Request):
         message = f"{request.method} not implemented"
         raise NotImplementedError(message)
 
-    result = request.app.graphql.execute(
+    result = await request.app.graphql.execute(
         request_string=payload.get('query'),
         operation_name=payload.get('operationName'),
         variables=payload.get('variables'),
-        context=request,
-        middleware=[authorize]
+        context=Context(request=request),
+        middleware=[authorize],
+        executor=AsyncioExecutor(loop=request.app.loop),
+        return_promise=True,
     )
 
     return json(result, indent=2)

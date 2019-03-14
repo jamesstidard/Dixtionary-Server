@@ -4,9 +4,16 @@ from dixtionary.model import Context
 from dixtionary.model.query import User
 
 
-def authorize(next, root, info, **args):
+async def authorize(next, root, info, **args):
+    if info.context.request.app.config.NO_AUTH:
+        info.context = Context(
+            request=info.context.request,
+            current_user=User(uuid=0, name='bill')
+        )
+        return await next(root, info, **args)
+
     if 'login' == info.path[0]:
-        return next(root, info, **args)
+        return await next(root, info, **args)
 
     try:
         token = info.variable_values['token']
@@ -27,4 +34,4 @@ def authorize(next, root, info, **args):
         current_user=User(**user)
     )
 
-    return next(root, info, **args)
+    return await next(root, info, **args)
