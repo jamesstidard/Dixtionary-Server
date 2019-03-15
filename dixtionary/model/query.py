@@ -22,7 +22,7 @@ class Score(RedisObjectType):
     user = g.Field(User, required=True)
     value = g.Int(required=True)
 
-    async def resolve_user(self, info, uuid):
+    async def resolve_user(self, info):
         return await User.resolve(self, info, self.user)
 
 
@@ -33,10 +33,10 @@ class Round(RedisObjectType):
     artist = g.Field(User, required=True)
     scores = g.List(Score)
 
-    async def resolve_artist(self, info, uuid):
+    async def resolve_artist(self, info):
         return await User.resolve(self, info, self.artist)
 
-    async def resolve_scores(self, info, uuid):
+    async def resolve_scores(self, info):
         return [Score.resolve(self, info, uuid) for uuid in self.scores]
 
 
@@ -44,7 +44,7 @@ class Game(RedisObjectType):
     uuid = g.ID(required=True)
     rounds = g.List(Round)
 
-    async def resolve_rounds(self, info, uuid):
+    async def resolve_rounds(self, info):
         return [Round.resolve(self, info, uuid) for uuid in self.rounds]
 
 
