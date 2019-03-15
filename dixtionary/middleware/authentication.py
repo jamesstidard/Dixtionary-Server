@@ -5,21 +5,16 @@ from dixtionary.model.query import User
 
 
 async def authorize(next, root, info, **args):
-    if info.context.request.app.config.NO_AUTH:
-        info.context = Context(
-            request=info.context.request,
-            current_user=User(uuid=0, name='bill')
-        )
-        return await next(root, info, **args)
-
-    if 'login' == info.path[0]:
-        return await next(root, info, **args)
+    read_only = info.operation.operation == 'query'
 
     try:
         token = info.variable_values['token']
     except KeyError:
-        msg = "token variable required for access. Try the login endpoint."
-        raise ValueError(msg)
+        if read_only:
+            return await next(root, info, **args)
+        else:
+            msg = "token variable required for access. Try the login endpoint."
+            raise ValueError(msg)
 
     serializer = Serializer(info.context.request.app.config.SECRET)
 
