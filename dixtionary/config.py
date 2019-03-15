@@ -10,4 +10,3 @@ class Config(EnvConfig):
     WORKERS: int = multiprocessing.cpu_count()
     SECRET: str = secrets.token_hex(64)
     DATABASE_URL: str = 'redis://localhost'
-    NO_AUTH: bool = False
