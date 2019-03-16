@@ -6,11 +6,12 @@ from dixtionary.model.query import User
 
 async def authorize(next, root, info, **args):
     read_only = info.operation.operation == 'query'
+    login = 'login' == info.path[0]
 
     try:
         token = info.variable_values['token']
     except KeyError:
-        if read_only:
+        if read_only or login:
             return await next(root, info, **args)
         else:
             msg = "token variable required for access. Try the login endpoint."
