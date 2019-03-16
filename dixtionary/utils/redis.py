@@ -16,5 +16,9 @@ def dumps(entity: graphene.ObjectType):
     return type_, key, value
 
 
-def loads(value):
-    return json.loads(value.decode('utf-8'))
+def loads(value, *, entity=None):
+    data = json.loads(value.decode('utf-8'))
+    if entity:
+        return entity(**data)
+    else:
+        return data

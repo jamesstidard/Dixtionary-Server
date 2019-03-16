@@ -42,8 +42,9 @@ class RedisUpdateMutation(g.Mutation):
         obj = await info.context.request.app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(obj)
         obj = {**obj, **kwargs}
+        obj = cls(**obj)
         await info.context.request.app.redis.hset(*redis.dumps(obj))
-        return cls(**obj)
+        return obj
 
 
 class RedisDeleteMutation(g.Mutation):
