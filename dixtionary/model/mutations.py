@@ -31,8 +31,9 @@ class RedisInsertMutation(g.Mutation):
     async def mutate(self, info, token, **kwargs):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
-        await info.context.request.app.redis.hset(*redis.dumps(obj))
-        return obj
+        type_, key, data = redis.dumps(obj)
+        await info.context.request.app.redis.hset(type_, key, data)
+        return redis.loads(data, entity=cls)
 
 
 class RedisUpdateMutation(g.Mutation):
@@ -54,9 +55,11 @@ class RedisDeleteMutation(g.Mutation):
     ok = g.Boolean()
 
     async def mutate(self, info, uuid, token):
-        cls = info.return_type.graphene_type.Output
+        cls = info.return_type.graphene_type
+        obj = await info.context.request.app.redis.hget(cls.__name__, uuid)
+        obj = redis.loads(obj)
         await info.context.request.app.redis.hdel(cls.__name__, uuid)
-        return True
+        return cls(**obj)
 
 
 class InsertRoom(RedisInsertMutation):
@@ -67,11 +70,15 @@ class InsertRoom(RedisInsertMutation):
 
     Output = Room
 
-    # async def mutate(self, info, **kwargs):
-    #     cls = info.return_type.graphene_type
-    #     obj = cls(uuid=uuid4().hex, **kwargs)
-    #     await info.context.request.app.redis.hset(*redis.dumps(obj))
-    #     return obj
+    async def mutate(self, info, **kwargs):
+        return await RedisInsertMutation.mutate(
+            self,
+            info,
+            **kwargs,
+            owner=info.context.current_user,
+            members=[info.context.current_user],
+            chat=[],
+        )
 
 
 class UpdateRoom(RedisUpdateMutation):
@@ -95,7 +102,7 @@ class UpdateRoom(RedisUpdateMutation):
 
 
 class DeleteRoom(RedisDeleteMutation):
-    pass
+    Output = Room
 
     # def mutate(self, info, uuid):
     #     room = None  # TODO: info.context.app.redis.get(...)
@@ -110,6 +117,7 @@ class DeleteRoom(RedisDeleteMutation):
 
 class Mutation(g.ObjectType):
     login = Login.Field()
+
     insert_room = InsertRoom.Field()
     update_room = UpdateRoom.Field()
     delete_room = DeleteRoom.Field()

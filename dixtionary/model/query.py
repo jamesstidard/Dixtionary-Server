@@ -4,6 +4,7 @@ from dixtionary.utils import redis
 
 
 class RedisObjectType(g.ObjectType):
+    uuid = g.ID(required=True)
 
     async def resolve(self, info, uuid):
         cls = info.return_type.of_type.graphene_type
@@ -13,12 +14,10 @@ class RedisObjectType(g.ObjectType):
 
 
 class User(RedisObjectType):
-    uuid = g.ID(required=True)
     name = g.String(required=True)
 
 
 class Score(RedisObjectType):
-    uuid = g.ID(required=True)
     user = g.Field(User, required=True)
     value = g.Int(required=True)
 
@@ -27,7 +26,6 @@ class Score(RedisObjectType):
 
 
 class Round(RedisObjectType):
-    uuid = g.ID(required=True)
     choices = g.List(g.String, required=True)
     choice = g.String(required=False)
     artist = g.Field(User, required=True)
@@ -41,7 +39,6 @@ class Round(RedisObjectType):
 
 
 class Game(RedisObjectType):
-    uuid = g.ID(required=True)
     rounds = g.List(Round)
 
     async def resolve_rounds(self, info):
@@ -49,13 +46,11 @@ class Game(RedisObjectType):
 
 
 class Message(RedisObjectType):
-    uuid = g.ID(required=True)
     time = g.DateTime(required=True)
     body = g.String(required=True)
 
 
 class Room(RedisObjectType):
-    uuid = g.ID(required=True)
     name = g.String(required=True)
     owner = g.Field(User, required=True)
     password = g.String(required=False)
