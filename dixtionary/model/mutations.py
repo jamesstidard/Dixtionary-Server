@@ -90,29 +90,30 @@ class UpdateRoom(RedisUpdateMutation):
 
     Output = Room
 
-    # def mutate(self, info, uuid, **kwargs):
-    #     room = None  # TODO: info.context.app.redis.get(...)
-    #     user = info.context.current_user
+    async def mutate(self, info, uuid, **kwargs):
+        data = await info.context.request.app.redis.hget(Room.__name__, uuid)
+        room = Room(**redis.loads(data))
+        user = info.context.current_user
 
-    #     if room.owner != user:
-    #         raise ValueError("Not your room to change")
+        if room.owner != user.uuid:
+            raise ValueError("Not your room to change")
 
-    #     room = Room(**vars(room), **kwargs)
-    #     return room
+        return await RedisUpdateMutation.mutate(self, info, **kwargs)
 
 
 class DeleteRoom(RedisDeleteMutation):
     Output = Room
 
-    # def mutate(self, info, uuid):
-    #     room = None  # TODO: info.context.app.redis.get(...)
-    #     user = info.context.current_user
+    async def mutate(self, info, uuid):
+        data = await info.context.request.app.redis.hget(Room.__name__, uuid)
+        room = Room(**redis.loads(data))
+        user = info.context.current_user
 
-    #     if room.owner != user:
-    #         raise ValueError("Not your room to delete")
+        if room.owner != user.uuid:
+            raise ValueError("Not your room to change")
 
-    #     # TODO: info.context.app.redis.del(...)
-    #     return True
+        await info.context.app.redis.hdel(Room.__name__, uuid)
+        return room
 
 
 class Mutation(g.ObjectType):
