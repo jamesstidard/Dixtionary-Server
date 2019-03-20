@@ -98,7 +98,7 @@ class UpdateRoom(RedisUpdateMutation):
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
 
-        return await RedisUpdateMutation.mutate(self, info, **kwargs)
+        return await RedisUpdateMutation.mutate(self, info, uuid, **kwargs)
 
 
 class DeleteRoom(RedisDeleteMutation):
