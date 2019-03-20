@@ -52,8 +52,6 @@ class RedisDeleteMutation(g.Mutation):
     class Arguments(AuthenticatedArguments):
         uuid = g.ID(required=True)
 
-    ok = g.Boolean()
-
     async def mutate(self, info, uuid, token):
         cls = info.return_type.graphene_type
         obj = await info.context.request.app.redis.hget(cls.__name__, uuid)
@@ -104,7 +102,7 @@ class UpdateRoom(RedisUpdateMutation):
 class DeleteRoom(RedisDeleteMutation):
     Output = Room
 
-    async def mutate(self, info, uuid):
+    async def mutate(self, info, uuid, **kwargs):
         data = await info.context.request.app.redis.hget(Room.__name__, uuid)
         room = Room(**redis.loads(data))
         user = info.context.current_user
@@ -112,7 +110,7 @@ class DeleteRoom(RedisDeleteMutation):
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
 
-        await info.context.app.redis.hdel(Room.__name__, uuid)
+        await info.context.request.app.redis.hdel(Room.__name__, uuid)
         return room
 
 
