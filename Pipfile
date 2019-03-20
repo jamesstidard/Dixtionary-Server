@@ -20,6 +20,7 @@ graphene = "*"
 itsdangerous = "*"
 sanic-cors = "*"
 aioredis = "*"
+aiodataloader = "*"
 
 [requires]
 python_version = "3.7"
