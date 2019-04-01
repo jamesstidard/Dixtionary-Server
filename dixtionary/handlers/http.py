@@ -1,3 +1,5 @@
+from json import loads as json_loads
+
 from sanic.request import Request
 from sanic.response import json
 

@@ -10,4 +10,5 @@ class Redis:
 
         @app.listener('after_server_stop')
         async def after_server_stop(app, loop):
+            app.redis.close()
             await app.redis.wait_closed()

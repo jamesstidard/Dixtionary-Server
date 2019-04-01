@@ -21,6 +21,8 @@ itsdangerous = "*"
 sanic-cors = "*"
 aioredis = "*"
 aiodataloader = "*"
+graphql-ws = "*"
+rx = "<3.0"
 
 [requires]
 python_version = "3.7"

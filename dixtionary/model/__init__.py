@@ -6,6 +6,7 @@ from sanic.request import Request
 
 from .query import Query, User
 from .mutations import Mutation
+from .subscriptions import Subscription
 
 
 class Context(NamedTuple):
@@ -17,4 +18,5 @@ def make_schema():
     return g.Schema(
         query=Query,
         mutation=Mutation,
+        subscription=Subscription,
     )
