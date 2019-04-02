@@ -16,9 +16,9 @@ class Login(g.Mutation):
 
     async def mutate(self, info, **kwargs):
         user = User(uuid=uuid4().hex, **kwargs)
-        serializer = Serializer(info.context.request.app.config.SECRET)
+        serializer = Serializer(info.context["request"].app.config.SECRET)
         token = serializer.dumps(vars(user))
-        await info.context.request.app.redis.hmset(*redis.dumps(user))
+        await info.context["request"].app.redis.hmset(*redis.dumps(user))
         return Login(token=token)
 
 
@@ -28,7 +28,7 @@ class RedisInsertMutation(g.Mutation):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
         type_, key, data = redis.dumps(obj)
-        await info.context.request.app.redis.hset(type_, key, data)
+        await info.context["request"].app.redis.hset(type_, key, data)
         return redis.loads(data, entity=cls)
 
 
@@ -36,11 +36,11 @@ class RedisUpdateMutation(g.Mutation):
 
     async def mutate(self, info, uuid, token, **kwargs):
         cls = info.return_type.graphene_type
-        obj = await info.context.request.app.redis.hget(cls.__name__, uuid)
+        obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(obj)
         obj = {**obj, **kwargs}
         obj = cls(**obj)
-        await info.context.request.app.redis.hset(*redis.dumps(obj))
+        await info.context["request"].app.redis.hset(*redis.dumps(obj))
         return obj
 
 
@@ -50,9 +50,9 @@ class RedisDeleteMutation(g.Mutation):
 
     async def mutate(self, info, uuid, token):
         cls = info.return_type.graphene_type
-        obj = await info.context.request.app.redis.hget(cls.__name__, uuid)
+        obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(obj)
-        await info.context.request.app.redis.hdel(cls.__name__, uuid)
+        await info.context["request"].app.redis.hdel(cls.__name__, uuid)
         return cls(**obj)
 
 
@@ -69,8 +69,8 @@ class InsertRoom(RedisInsertMutation):
             self,
             info,
             **kwargs,
-            owner=info.context.current_user,
-            members=[info.context.current_user],
+            owner=info.context["current_user"],
+            members=[info.context["current_user"]],
             chat=[],
         )
 
@@ -85,9 +85,9 @@ class UpdateRoom(RedisUpdateMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context.request.app.redis.hget(Room.__name__, uuid)
+        data = await info.context["request"].app.redis.hget(Room.__name__, uuid)
         room = Room(**redis.loads(data))
-        user = info.context.current_user
+        user = info.context["current_user"]
 
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
@@ -99,14 +99,14 @@ class DeleteRoom(RedisDeleteMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context.request.app.redis.hget(Room.__name__, uuid)
+        data = await info.context["request"].app.redis.hget(Room.__name__, uuid)
         room = Room(**redis.loads(data))
-        user = info.context.current_user
+        user = info.context["current_user"]
 
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
 
-        await info.context.request.app.redis.hdel(Room.__name__, uuid)
+        await info.context["request"].app.redis.hdel(Room.__name__, uuid)
         return room
 
 

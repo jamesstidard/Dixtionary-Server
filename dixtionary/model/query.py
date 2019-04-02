@@ -8,7 +8,7 @@ class RedisObjectType(g.ObjectType):
 
     async def resolve(self, info, uuid):
         cls = info.return_type.of_type.graphene_type
-        data = await info.context.request.app.redis.hget(cls.__name__, uuid)
+        data = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(data)
         return cls(**obj)
 
@@ -77,12 +77,12 @@ class Query(g.ObjectType):
     rooms = g.List(Room, description='Game rooms')
 
     def resolve_me(self, info):
-        user = info.context.current_user
+        user = info.context["current_user"]
         if user:
             return User(uuid=user.uuid, name=user.name)
         else:
             raise ValueError("No current user.")
 
     async def resolve_rooms(self, info):
-        uuids = await info.context.request.app.redis.hkeys(str(Room))
+        uuids = await info.context["request"].app.redis.hkeys(str(Room))
         return [Room.resolve(self, info, uuid) for uuid in uuids]
