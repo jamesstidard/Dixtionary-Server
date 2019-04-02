@@ -22,10 +22,6 @@ class Login(g.Mutation):
         return Login(token=token)
 
 
-class AuthenticatedArguments:
-    token = g.String(required=True)
-
-
 class RedisInsertMutation(g.Mutation):
 
     async def mutate(self, info, token, **kwargs):
@@ -49,7 +45,7 @@ class RedisUpdateMutation(g.Mutation):
 
 
 class RedisDeleteMutation(g.Mutation):
-    class Arguments(AuthenticatedArguments):
+    class Arguments:
         uuid = g.ID(required=True)
 
     async def mutate(self, info, uuid, token):
@@ -61,7 +57,7 @@ class RedisDeleteMutation(g.Mutation):
 
 
 class InsertRoom(RedisInsertMutation):
-    class Arguments(AuthenticatedArguments):
+    class Arguments:
         name = g.String(required=True)
         password = g.String(required=False, default_value=None)
         capacity = g.Int(required=False, default_value=8)
@@ -80,7 +76,7 @@ class InsertRoom(RedisInsertMutation):
 
 
 class UpdateRoom(RedisUpdateMutation):
-    class Arguments(AuthenticatedArguments):
+    class Arguments:
         uuid = g.ID(required=True)
         name = g.String(required=False)
         password = g.String(required=False)

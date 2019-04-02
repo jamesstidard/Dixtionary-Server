@@ -2,23 +2,36 @@ import asyncio
 
 import graphene as g
 
-from .query import Room
+
+class RoomInserted(g.ObjectType):
+    uuid = g.ID(required=True)
+    name = g.String(required=True)
+    owner = g.ID(required=True)
+    password = g.String(required=False)
+    members = g.List(g.ID, required=True)
+    capacity = g.Int(required=True)
+    game = g.ID(required=True)
+    chat = g.List(g.ID, required=True)
+
+
+class RoomUpdated(RoomInserted):
+    ...
 
 
 class Subscription(g.ObjectType):
-    room_inserted = g.Field(Room, description='New rooms you say?')
-    room_updated = g.Field(Room, description='Updated rooms? do tell')
+    room_inserted = g.Field(RoomInserted, description='New rooms you say?')
+    room_updated = g.Field(RoomUpdated, description='Updated rooms? do tell')
 
     async def resolve_room_inserted(root, info):
         # TODO: https://tech.webinterpret.com/redis-notifications-python/
         for i in range(5):
-            yield Room(uuid=i, name='new')
+            yield RoomInserted(uuid=i, name='new')
             await asyncio.sleep(1.)
-        yield Room(uuid=5, name='new')
+        yield RoomInserted(uuid=5, name='new')
 
     async def resolve_room_updated(root, info):
         await asyncio.sleep(10)
         for i in range(5):
-            yield Room(uuid=i, name='updated')
+            yield RoomUpdated(uuid=i, name='updated')
             await asyncio.sleep(1.)
-        yield Room(uuid=5, name='updated')
+        yield RoomUpdated(uuid=5, name='updated')

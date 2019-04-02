@@ -9,7 +9,7 @@ async def authorize(next, root, info, **args):
     login = 'login' == info.path[0]
 
     try:
-        token = info.variable_values['token']
+        token = info.context.request.headers["authorization"]
     except KeyError:
         if read_only or login:
             return await next(root, info, **args)
