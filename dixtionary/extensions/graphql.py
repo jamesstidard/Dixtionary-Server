@@ -14,6 +14,12 @@ class GraphQL:
 
     def __init__(self, app, schema):
 
+        app.add_websocket_route(
+            handler=_websocket_handler,
+            uri='/subscriptions',
+            subprotocols=['graphql-ws'],
+        )
+
         @app.listener('before_server_start')
         async def before_server_start(app, loop):
             app.graphql = schema
@@ -24,6 +30,7 @@ class GraphQL:
                 schema=schema,
                 executor=executor,
                 middleware=[authorize],
+                graphiql_version='0.10.2',
             )
             app.add_route(
                 GraphQLView.as_view(**view_kwargs, graphiql=True),
@@ -32,9 +39,4 @@ class GraphQL:
             app.add_route(
                 GraphQLView.as_view(**view_kwargs, batch=True),
                 '/graphql/batch'
-            )
-            app.add_websocket_route(
-                handler=_websocket_handler,
-                uri='/subscriptions',
-                subprotocols=['graphql-ws'],
             )
