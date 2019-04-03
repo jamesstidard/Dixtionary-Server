@@ -1,5 +1,3 @@
-from typing import NamedTuple, Optional
-
 import graphene as g
 
 from .query import Query

@@ -1,9 +1,8 @@
 from sanic import Sanic
-from sanic_cors import CORS\
+from sanic_cors import CORS
 
 from .model import make_schema
 from .extensions import GraphQL, Redis
-
 
 
 async def create_app(config):
