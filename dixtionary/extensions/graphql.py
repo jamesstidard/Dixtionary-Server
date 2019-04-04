@@ -5,14 +5,33 @@ from sanic_graphql import GraphQLView
 from dixtionary.middleware import authorize
 
 
+def patch_gql_ws():
+    # https://github.com/graphql-python/graphql-ws/pull/10
+    from graphql_ws.base import BaseSubscriptionServer
+    from graphql import graphql
+    assert BaseSubscriptionServer.execute
+
+    def patched_execute(self, request_context, params):
+        try:
+            return graphql(
+                self.schema,
+                #**dict(params, allow_subscriptions=True))
+                **dict(params, context_value=dict(request=request_context), allow_subscriptions=True))
+        except BaseException as e:
+            raise e
+
+    BaseSubscriptionServer.execute = patched_execute
+
+
 async def _websocket_handler(request, ws):
-    await request.app.subscription_server.handle(ws)
+    await request.app.subscription_server.handle(ws, request)
     return ws
 
 
 class GraphQL:
 
     def __init__(self, app, schema):
+        patch_gql_ws()
 
         app.add_websocket_route(
             handler=_websocket_handler,

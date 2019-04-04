@@ -1,6 +1,7 @@
 from itsdangerous import Serializer, BadSignature
 
 from dixtionary.model.query import User
+from dixtionary.utils import redis
 
 
 async def authorize(next, root, info, **args):
@@ -24,6 +25,12 @@ async def authorize(next, root, info, **args):
         msg = "Looks like you've been tampering with you token. Get out."
         raise ValueError(msg)
 
-    info.context["current_user"] = User(**user)
+    # maybe server database has been cleared.
+    # insert user as it's trusted
+    user = User(**user)
+    type_, key, data = redis.dumps(user)
+    await info.context["request"].app.redis.hset(type_, key, data)
+
+    info.context["current_user"] = user
 
     return await next(root, info, **args)

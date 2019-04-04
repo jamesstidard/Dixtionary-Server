@@ -24,7 +24,7 @@ class Login(g.Mutation):
 
 class RedisInsertMutation(g.Mutation):
 
-    async def mutate(self, info, token, **kwargs):
+    async def mutate(self, info, **kwargs):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
         type_, key, data = redis.dumps(obj)
@@ -34,7 +34,7 @@ class RedisInsertMutation(g.Mutation):
 
 class RedisUpdateMutation(g.Mutation):
 
-    async def mutate(self, info, uuid, token, **kwargs):
+    async def mutate(self, info, uuid, **kwargs):
         cls = info.return_type.graphene_type
         obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(obj)
@@ -48,7 +48,7 @@ class RedisDeleteMutation(g.Mutation):
     class Arguments:
         uuid = g.ID(required=True)
 
-    async def mutate(self, info, uuid, token):
+    async def mutate(self, info, uuid):
         cls = info.return_type.graphene_type
         obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(obj)

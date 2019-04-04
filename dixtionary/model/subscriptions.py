@@ -23,11 +23,18 @@ class Subscription(g.ObjectType):
     room_updated = g.Field(RoomUpdated, description='Updated rooms? do tell')
 
     async def resolve_room_inserted(root, info):
-        # TODO: https://tech.webinterpret.com/redis-notifications-python/
-        for i in range(5):
-            yield RoomInserted(uuid=i, name='new')
-            await asyncio.sleep(1.)
-        yield RoomInserted(uuid=5, name='new')
+        app = info.context["request"].app
+        sub = await app.redis.subscribe('__keyspace@0__:*')
+        channel = sub[0]
+        while await channel.wait_message():
+            msg = await channel.get()
+            print(msg)
+            yield msg
+        # # TODO: https://tech.webinterpret.com/redis-notifications-python/
+        # for i in range(5):
+        #     yield RoomInserted(uuid=i, name='new')
+        #     await asyncio.sleep(1.)
+        # yield RoomInserted(uuid=5, name='new')
 
     async def resolve_room_updated(root, info):
         await asyncio.sleep(10)
