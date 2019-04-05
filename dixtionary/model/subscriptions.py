@@ -48,14 +48,11 @@ class Subscription(g.ObjectType):
     room_updated = g.Field(RoomUpdated, description='Updated rooms? do tell...')
     room_deleted = g.Field(RoomDeleted, description='Room? Where?')
 
-    async def resolve_room_inserted(root, info):
-        async for msg in resolve(root, info):
-            yield msg
+    def resolve_room_inserted(root, info):
+        return resolve(root, info)
 
-    async def resolve_room_updated(root, info):
-        async for msg in resolve(root, info):
-            yield msg
+    def resolve_room_updated(root, info):
+        return resolve(root, info)
 
-    async def resolve_room_deleted(root, info):
-        async for msg in resolve(root, info):
-            yield msg
+    def resolve_room_deleted(root, info):
+        return resolve(root, info)
