@@ -24,6 +24,7 @@ aiodataloader = "*"
 graphql-ws = "*"
 rx = "<3.0"
 sanic-graphql = "*"
+loguru = "*"
 
 [requires]
 python_version = "3.7"

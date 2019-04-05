@@ -1,6 +1,6 @@
-import asyncio
-
 import graphene as g
+
+from loguru import logger
 
 
 class RoomInserted(g.ObjectType):
@@ -18,27 +18,38 @@ class RoomUpdated(RoomInserted):
     ...
 
 
+class RoomDeleted(RoomInserted):
+    ...
+
+
 class Subscription(g.ObjectType):
     room_inserted = g.Field(RoomInserted, description='New rooms you say?')
-    room_updated = g.Field(RoomUpdated, description='Updated rooms? do tell')
+    room_updated = g.Field(RoomUpdated, description='Updated rooms? do tell...')
+    room_deleted = g.Field(RoomDeleted, description='Room? Where?')
 
     async def resolve_room_inserted(root, info):
+        logger.info(f"INSERTS SUBSCRIBED {id(info.context['request'])}")
         app = info.context["request"].app
-        sub = await app.redis.subscribe('__keyspace@0__:*')
-        channel = sub[0]
+        channel, = await app.redis.subscribe('ROOM_INSERTED')
         while await channel.wait_message():
-            msg = await channel.get()
-            print(msg)
-            yield msg
-        # # TODO: https://tech.webinterpret.com/redis-notifications-python/
-        # for i in range(5):
-        #     yield RoomInserted(uuid=i, name='new')
-        #     await asyncio.sleep(1.)
-        # yield RoomInserted(uuid=5, name='new')
+            data = await channel.get_json()
+            logger.info(f"INSERTED {id(info.context['request'])} {data}")
+            yield RoomInserted(**data)
 
     async def resolve_room_updated(root, info):
-        await asyncio.sleep(10)
-        for i in range(5):
-            yield RoomUpdated(uuid=i, name='updated')
-            await asyncio.sleep(1.)
-        yield RoomUpdated(uuid=5, name='updated')
+        logger.info(f"UPDATES SUBSCRIBED {id(info.context['request'])}")
+        app = info.context["request"].app
+        channel, = await app.redis.subscribe('ROOM_UPDATED')
+        while await channel.wait_message():
+            data = await channel.get_json()
+            logger.info(f"UPDATED {id(info.context['request'])} {data}")
+            yield RoomUpdated(**data)
+
+    async def resolve_room_deleted(root, info):
+        logger.info(f"DELETES SUBSCRIBED {id(info.context['request'])}")
+        app = info.context["request"].app
+        channel, = await app.redis.subscribe('ROOM_DELETED')
+        while await channel.wait_message():
+            data = await channel.get_json()
+            logger.info(f"DELETED {id(info.context['request'])} {data}")
+            yield RoomDeleted(**data)

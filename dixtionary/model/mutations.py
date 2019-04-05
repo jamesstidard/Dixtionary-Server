@@ -29,6 +29,7 @@ class RedisInsertMutation(g.Mutation):
         obj = cls(uuid=uuid4().hex, **kwargs)
         type_, key, data = redis.dumps(obj)
         await info.context["request"].app.redis.hset(type_, key, data)
+        await info.context["request"].app.redis.publish(f"{type_}_inserted".upper(), data)
         return redis.loads(data, entity=cls)
 
 
@@ -40,7 +41,9 @@ class RedisUpdateMutation(g.Mutation):
         obj = redis.loads(obj)
         obj = {**obj, **kwargs}
         obj = cls(**obj)
-        await info.context["request"].app.redis.hset(*redis.dumps(obj))
+        type_, key, data = redis.dumps(obj)
+        await info.context["request"].app.redis.hset(type_, key, data)
+        await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), data)
         return obj
 
 
@@ -50,9 +53,10 @@ class RedisDeleteMutation(g.Mutation):
 
     async def mutate(self, info, uuid):
         cls = info.return_type.graphene_type
-        obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
-        obj = redis.loads(obj)
+        data = await info.context["request"].app.redis.hget(cls.__name__, uuid)
+        obj = redis.loads(data)
         await info.context["request"].app.redis.hdel(cls.__name__, uuid)
+        await info.context["request"].app.redis.publish(f"{cls.__name__}_deleted".upper(), data)
         return cls(**obj)
 
 
@@ -106,8 +110,7 @@ class DeleteRoom(RedisDeleteMutation):
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
 
-        await info.context["request"].app.redis.hdel(Room.__name__, uuid)
-        return room
+        return await RedisDeleteMutation.mutate(self, info, uuid)
 
 
 class Mutation(g.ObjectType):
