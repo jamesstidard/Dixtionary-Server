@@ -16,6 +16,8 @@ async def authorize(next, root, info, **args):
         else:
             msg = "token variable required for access. Try the login endpoint."
             raise ValueError(msg)
+    else:
+        token = token.replace('Bearer ', '')
 
     serializer = Serializer(info.context["request"].app.config.SECRET)
 
