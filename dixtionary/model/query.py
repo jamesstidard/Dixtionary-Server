@@ -1,4 +1,5 @@
 import graphene as g
+from graphql.type.definition import GraphQLList
 
 from dixtionary.utils import redis
 
@@ -7,7 +8,10 @@ class RedisObjectType(g.ObjectType):
     uuid = g.ID(required=True)
 
     async def resolve(self, info, uuid):
-        cls = info.return_type.of_type.graphene_type
+        cls = info.return_type.of_type
+        if isinstance(cls, GraphQLList):
+            cls = cls.of_type
+        cls = cls.graphene_type
         data = await info.context["request"].app.redis.hget(cls.__name__, uuid)
         obj = redis.loads(data)
         return cls(**obj)
@@ -66,6 +70,7 @@ class Room(RedisObjectType):
         return await User.resolve(self, info, self.owner)
 
     async def resolve_members(self, info):
+        print(self.members)
         return [User.resolve(self, info, uuid) for uuid in self.members]
 
     async def resolve_game(self, info):
@@ -77,7 +82,7 @@ class Room(RedisObjectType):
 
 class Query(g.ObjectType):
     me = g.Field(User, description='Who are you?')
-    rooms = g.List(Room, description='Game rooms')
+    rooms = g.List(Room, description='Game rooms', uuids=g.List(g.String, required=False))
 
     def resolve_me(self, info):
         user = info.context["current_user"]
@@ -86,6 +91,8 @@ class Query(g.ObjectType):
         else:
             raise ValueError("No current user.")
 
-    async def resolve_rooms(self, info):
-        uuids = await info.context["request"].app.redis.hkeys(str(Room))
+    async def resolve_rooms(self, info, uuids=None):
+        if not uuids:
+            uuids = await info.context["request"].app.redis.hkeys(str(Room))
+
         return [Room.resolve(self, info, uuid) for uuid in uuids]
