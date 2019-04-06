@@ -53,11 +53,14 @@ class Message(RedisObjectType):
 class Room(RedisObjectType):
     name = g.String(required=True)
     owner = g.Field(User, required=True)
-    password = g.String(required=False)
+    password = g.Boolean(required=True)
     members = g.List(User, required=True)
     capacity = g.Int(required=True)
     game = g.Field(Game, required=True)
     chat = g.List(Message, required=True)
+
+    async def resolve_password(self, info):
+        return (self.password not in {None, ''})
 
     async def resolve_owner(self, info):
         return await User.resolve(self, info, self.owner)
