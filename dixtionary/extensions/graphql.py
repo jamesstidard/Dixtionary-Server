@@ -13,10 +13,14 @@ def patch_gql_ws():
 
     def patched_execute(self, request_context, params):
         try:
+            params.pop('context_value')
             return graphql(
                 self.schema,
-                #**dict(params, allow_subscriptions=True))
-                **dict(params, context_value=dict(request=request_context), allow_subscriptions=True))
+                **params,
+                # middleware=[authorize],
+                context_value=dict(request=request_context),
+                allow_subscriptions=True,
+            )
         except BaseException as e:
             raise e
 
@@ -42,7 +46,7 @@ class GraphQL:
         @app.listener('before_server_start')
         async def before_server_start(app, loop):
             app.graphql = schema
-            app.subscription_server = WsLibSubscriptionServer(schema)
+            app.subscription_server = WsLibSubscriptionServer(schema, loop=loop)
 
             executor = AsyncioExecutor(loop=loop)
             view_kwargs = dict(

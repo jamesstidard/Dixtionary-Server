@@ -74,7 +74,7 @@ class InsertRoom(RedisInsertMutation):
             info,
             **kwargs,
             owner=info.context["current_user"],
-            members=[info.context["current_user"]],
+            members=[],
             chat=[],
         )
 

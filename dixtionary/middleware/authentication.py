@@ -1,12 +1,34 @@
+from promise import Promise
 from itsdangerous import Serializer, BadSignature
 
 from dixtionary.model.query import User
 from dixtionary.utils import redis
 
 
+# https://github.com/graphql-python/graphql-core/issues/149
+# def next_subscription(next):
+#     async def next_(root, info, **args):
+#         async def inner():
+#             result = next(root, info, **args)
+#             if isinstance(result, Promise):
+#                 result = result.get()
+#             async for msg in result:
+#                 yield msg
+#         return inner()
+#     return next_
+
+
 async def authorize(next, root, info, **args):
-    read_only = info.operation.operation == 'query'
+    is_query = info.operation.operation == 'query'
+    is_subscription = info.operation.operation == 'subscription'
+    read_only = (
+        (is_query or is_subscription)
+        # and not info.field_name == 'joinRoom' NOTE: Auth via token as https://github.com/Akryum/vue-apollo/issues/520
+    )
     login = 'login' == info.path[0]
+
+    # if is_subscription:
+    #     next = next_subscription(next)
 
     try:
         token = info.context["request"].headers["authorization"]
