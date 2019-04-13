@@ -124,6 +124,7 @@ class InsertMessage(RedisInsertMutation):
 
     async def mutate(self, info, room, body):
         msg = Message(
+            uuid=uuid4().hex,
             room=room,
             body=body,
             time=datetime.utcnow(),

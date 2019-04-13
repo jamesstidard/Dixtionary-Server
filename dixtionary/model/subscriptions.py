@@ -107,6 +107,7 @@ class Subscription(g.ObjectType):
     message_inserted = g.Field(
         Message,
         description='What did you say?',
+        room=g.String(required=False),
     )
 
     def resolve_room_inserted(root, info):
@@ -166,8 +167,8 @@ class Subscription(g.ObjectType):
     async def resolve_message_inserted(root, info, room):
         app = info.context["request"].app
 
-        async with app.redis.subscribe('MESSAGE_INSERTED')as messages:
-            async for data in messages:
-                message = Message(**data)
+        async with app.redis.subscribe('MESSAGE_INSERTED') as subscription:
+            async for msg in subscription:
+                message = Message(**msg)
                 if room == message.room:
                     yield message
