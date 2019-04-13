@@ -18,7 +18,7 @@ class Login(g.Mutation):
         user = User(uuid=uuid4().hex, **kwargs)
         serializer = Serializer(info.context["request"].app.config.SECRET)
         token = serializer.dumps(vars(user))
-        await info.context["request"].app.redis.hmset(*redis.dumps(user))
+        await info.context["request"].app.redis.pool.hmset(*redis.dumps(user))
         return Login(token=token)
 
 
@@ -28,8 +28,8 @@ class RedisInsertMutation(g.Mutation):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
         type_, key, data = redis.dumps(obj)
-        await info.context["request"].app.redis.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"{type_}_inserted".upper(), data)
+        await info.context["request"].app.redis.pool.hset(type_, key, data)
+        await info.context["request"].app.redis.pool.publish(f"{type_}_inserted".upper(), data)
         return redis.loads(data, entity=cls)
 
 
@@ -37,13 +37,13 @@ class RedisUpdateMutation(g.Mutation):
 
     async def mutate(self, info, uuid, **kwargs):
         cls = info.return_type.graphene_type
-        obj = await info.context["request"].app.redis.hget(cls.__name__, uuid)
+        obj = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
         obj = redis.loads(obj)
         obj = {**obj, **kwargs}
         obj = cls(**obj)
         type_, key, data = redis.dumps(obj)
-        await info.context["request"].app.redis.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), data)
+        await info.context["request"].app.redis.pool.hset(type_, key, data)
+        await info.context["request"].app.redis.pool.publish(f"{type_}_updated".upper(), data)
         return obj
 
 
@@ -53,10 +53,10 @@ class RedisDeleteMutation(g.Mutation):
 
     async def mutate(self, info, uuid):
         cls = info.return_type.graphene_type
-        data = await info.context["request"].app.redis.hget(cls.__name__, uuid)
+        data = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
         obj = redis.loads(data)
-        await info.context["request"].app.redis.hdel(cls.__name__, uuid)
-        await info.context["request"].app.redis.publish(f"{cls.__name__}_deleted".upper(), data)
+        await info.context["request"].app.redis.pool.hdel(cls.__name__, uuid)
+        await info.context["request"].app.redis.pool.publish(f"{cls.__name__}_deleted".upper(), data)
         return cls(**obj)
 
 
@@ -89,7 +89,7 @@ class UpdateRoom(RedisUpdateMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context["request"].app.redis.hget(Room.__name__, uuid)
+        data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
         room = Room(**redis.loads(data))
         user = info.context["current_user"]
 
@@ -103,7 +103,7 @@ class DeleteRoom(RedisDeleteMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context["request"].app.redis.hget(Room.__name__, uuid)
+        data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
         room = Room(**redis.loads(data))
         user = info.context["current_user"]
 

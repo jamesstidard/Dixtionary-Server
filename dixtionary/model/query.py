@@ -12,7 +12,7 @@ class RedisObjectType(g.ObjectType):
         if isinstance(cls, GraphQLList):
             cls = cls.of_type
         cls = cls.graphene_type
-        data = await info.context["request"].app.redis.hget(cls.__name__, uuid)
+        data = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
         obj = redis.loads(data)
         return cls(**obj)
 
@@ -93,6 +93,6 @@ class Query(g.ObjectType):
 
     async def resolve_rooms(self, info, uuids=None):
         if not uuids:
-            uuids = await info.context["request"].app.redis.hkeys(str(Room))
+            uuids = await info.context["request"].app.redis.pool.hkeys(str(Room))
 
         return [Room.resolve(self, info, uuid) for uuid in uuids]
