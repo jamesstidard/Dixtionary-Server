@@ -53,7 +53,9 @@ async def authorize(next, root, info, **args):
     # insert user as it's trusted
     user = User(**user)
     type_, key, data = redis.dumps(user)
-    await info.context["request"].app.redis.pool.hset(type_, key, data)
+    if not (await info.context["request"].app.redis.pool.hexists(type_, key)):
+        await info.context["request"].app.redis.pool.hset(type_, key, data)
+        await info.context["request"].app.redis.pool.publish(f"user_inserted".upper(), data)
 
     info.context["current_user"] = user
 

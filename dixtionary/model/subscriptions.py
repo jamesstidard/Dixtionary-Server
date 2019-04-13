@@ -56,25 +56,56 @@ class RoomDeleted(RoomSubscription):
     ...
 
 
+class UserSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    name = g.String(required=True)
+
+
+class UserInserted(UserSubscription):
+    ...
+
+
+class UserUpdated(UserSubscription):
+    ...
+
+
+class UserDeleted(UserSubscription):
+    ...
+
+
 class Subscription(g.ObjectType):
     room_inserted = g.Field(
         RoomInserted,
-        description='New rooms you say?'
+        description='New rooms you say?',
     )
     room_updated = g.Field(
         RoomUpdated,
         description='Updated rooms? do tell...',
-        uuids=g.List(g.String, required=False)
+        uuids=g.List(g.String, required=False),
     )
     room_deleted = g.Field(
         RoomDeleted,
         description='Room? Where?',
-        uuids=g.List(g.String, required=False)
+        uuids=g.List(g.String, required=False),
     )
     join_room = g.Boolean(
         description='Hold on tight - if your in the room',
         uuid=g.String(required=True),
         token=g.String(required=True),
+    )
+    user_inserted = g.Field(
+        UserInserted,
+        description='New around these parts.',
+    )
+    user_updated = g.Field(
+        UserUpdated,
+        description='New year; new you.',
+        uuids=g.List(g.String, required=False),
+    )
+    user_deleted = g.Field(
+        UserDeleted,
+        description='Banished',
+        uuids=g.List(g.String, required=False),
     )
 
     def resolve_room_inserted(root, info):
@@ -121,3 +152,12 @@ class Subscription(g.ObjectType):
             await info.context["request"].app.redis.pool.publish(f"{type_}_updated".upper(), data)
             logger.info(f"LEFT {uuid} {id(info.context['request'])}")
             raise
+
+    def resolve_user_inserted(root, info):
+        return resolve(root, info)
+
+    def resolve_user_updated(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
+
+    def resolve_user_deleted(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)

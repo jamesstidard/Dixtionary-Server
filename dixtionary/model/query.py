@@ -81,7 +81,8 @@ class Room(RedisObjectType):
 
 
 class Query(g.ObjectType):
-    me = g.Field(User, description='Who are you?')
+    me = g.Field(User, description='Me, myself & I')
+    users = g.List(User, description='Bed fellows', uuids=g.List(g.String, required=False))
     rooms = g.List(Room, description='Game rooms', uuids=g.List(g.String, required=False))
 
     def resolve_me(self, info):
@@ -90,6 +91,12 @@ class Query(g.ObjectType):
             return User(uuid=user.uuid, name=user.name)
         else:
             raise ValueError("No current user.")
+
+    async def resolve_users(self, info, uuids=None):
+        if not uuids:
+            uuids = await info.context["request"].app.redis.pool.hkeys(str(User))
+
+        return [Room.resolve(self, info, uuid) for uuid in uuids]
 
     async def resolve_rooms(self, info, uuids=None):
         if not uuids:

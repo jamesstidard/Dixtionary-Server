@@ -18,7 +18,9 @@ class Login(g.Mutation):
         user = User(uuid=uuid4().hex, **kwargs)
         serializer = Serializer(info.context["request"].app.config.SECRET)
         token = serializer.dumps(vars(user))
-        await info.context["request"].app.redis.pool.hmset(*redis.dumps(user))
+        type_, key, data = redis.dumps(user)
+        await info.context["request"].app.redis.pool.hmset(type_, key, data)
+        await info.context["request"].app.redis.pool.publish(f"user_inserted".upper(), data)
         return Login(token=token)
 
 
