@@ -1,14 +1,12 @@
 import asyncio
 
 import graphene as g
-
+from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
-from itsdangerous import Serializer, BadSignature
-
-from dixtionary.utils.string import underscore
-from dixtionary.model.query import Room
+from dixtionary.model.query import Message, Room
 from dixtionary.utils import redis
+from dixtionary.utils.string import underscore
 
 
 async def resolve(root, info, uuids=None):
@@ -41,7 +39,6 @@ class RoomSubscription(g.ObjectType):
     members = g.List(g.ID, required=True)
     capacity = g.Int(required=True)
     game = g.ID(required=True)
-    chat = g.List(g.ID, required=True)
 
 
 class RoomInserted(RoomSubscription):
@@ -107,6 +104,10 @@ class Subscription(g.ObjectType):
         description='Banished',
         uuids=g.List(g.String, required=False),
     )
+    message_inserted = g.Field(
+        Message,
+        description='What did you say?',
+    )
 
     def resolve_room_inserted(root, info):
         return resolve(root, info)
@@ -134,7 +135,7 @@ class Subscription(g.ObjectType):
 
         type_, key, data = redis.dumps(room)
         await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.pool.publish(f"{type_}_updated".upper(), data)
+        await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
 
         yield True
 
@@ -149,7 +150,7 @@ class Subscription(g.ObjectType):
             room.members = members
             type_, key, data = redis.dumps(room)
             await info.context["request"].app.redis.pool.hset(type_, key, data)
-            await info.context["request"].app.redis.pool.publish(f"{type_}_updated".upper(), data)
+            await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
             logger.info(f"LEFT {uuid} {id(info.context['request'])}")
             raise
 
@@ -161,3 +162,12 @@ class Subscription(g.ObjectType):
 
     def resolve_user_deleted(root, info, uuids=None):
         return resolve(root, info, uuids=uuids)
+
+    async def resolve_message_inserted(root, info, room):
+        app = info.context["request"].app
+
+        async with app.redis.subscribe('MESSAGE_INSERTED')as messages:
+            async for data in messages:
+                message = Message(**data)
+                if room == message.room:
+                    yield message

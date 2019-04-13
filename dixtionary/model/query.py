@@ -50,8 +50,10 @@ class Game(RedisObjectType):
 
 
 class Message(RedisObjectType):
+    room = g.ID(required=True)
     time = g.DateTime(required=True)
     body = g.String(required=True)
+    author = g.ID(required=True)
 
 
 class Room(RedisObjectType):
@@ -61,7 +63,6 @@ class Room(RedisObjectType):
     members = g.List(User, required=True)
     capacity = g.Int(required=True)
     game = g.Field(Game, required=True)
-    chat = g.List(Message, required=True)
 
     async def resolve_password(self, info):
         return (self.password not in {None, ''})
@@ -70,14 +71,10 @@ class Room(RedisObjectType):
         return await User.resolve(self, info, self.owner)
 
     async def resolve_members(self, info):
-        print(self.members)
         return [User.resolve(self, info, uuid) for uuid in self.members]
 
     async def resolve_game(self, info):
         return await Game.resolve(self, info, self.game)
-
-    async def resolve_chat(self, info):
-        return [Message.resolve(self, info, uuid) for uuid in self.chat]
 
 
 class Query(g.ObjectType):

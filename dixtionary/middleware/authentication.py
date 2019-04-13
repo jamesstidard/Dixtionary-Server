@@ -55,7 +55,7 @@ async def authorize(next, root, info, **args):
     type_, key, data = redis.dumps(user)
     if not (await info.context["request"].app.redis.pool.hexists(type_, key)):
         await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.pool.publish(f"user_inserted".upper(), data)
+        await info.context["request"].app.redis.publish(f"user_inserted", user)
 
     info.context["current_user"] = user
 

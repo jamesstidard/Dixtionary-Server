@@ -1,10 +1,11 @@
 from uuid import uuid4
+from datetime import datetime
 
 import graphene as g
 
 from itsdangerous import Serializer
 
-from .query import User, Room
+from .query import User, Room, Message
 from dixtionary.utils import redis
 
 
@@ -20,7 +21,7 @@ class Login(g.Mutation):
         token = serializer.dumps(vars(user))
         type_, key, data = redis.dumps(user)
         await info.context["request"].app.redis.pool.hmset(type_, key, data)
-        await info.context["request"].app.redis.pool.publish(f"user_inserted".upper(), data)
+        await info.context["request"].app.redis.publish(f"user_inserted", user)
         return Login(token=token)
 
 
@@ -31,7 +32,7 @@ class RedisInsertMutation(g.Mutation):
         obj = cls(uuid=uuid4().hex, **kwargs)
         type_, key, data = redis.dumps(obj)
         await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.pool.publish(f"{type_}_inserted".upper(), data)
+        await info.context["request"].app.redis.publish(f"{type_}_inserted", obj)
         return redis.loads(data, entity=cls)
 
 
@@ -45,7 +46,7 @@ class RedisUpdateMutation(g.Mutation):
         obj = cls(**obj)
         type_, key, data = redis.dumps(obj)
         await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.pool.publish(f"{type_}_updated".upper(), data)
+        await info.context["request"].app.redis.publish(f"{type_}_updated", obj)
         return obj
 
 
@@ -58,7 +59,7 @@ class RedisDeleteMutation(g.Mutation):
         data = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
         obj = redis.loads(data)
         await info.context["request"].app.redis.pool.hdel(cls.__name__, uuid)
-        await info.context["request"].app.redis.pool.publish(f"{cls.__name__}_deleted".upper(), data)
+        await info.context["request"].app.redis.publish(f"{cls.__name__}_deleted", obj)
         return cls(**obj)
 
 
@@ -77,7 +78,6 @@ class InsertRoom(RedisInsertMutation):
             **kwargs,
             owner=info.context["current_user"],
             members=[],
-            chat=[],
         )
 
 
@@ -115,9 +115,30 @@ class DeleteRoom(RedisDeleteMutation):
         return await RedisDeleteMutation.mutate(self, info, uuid)
 
 
+class InsertMessage(RedisInsertMutation):
+    class Arguments:
+        room = g.String(required=True)
+        body = g.String(required=True)
+
+    Output = Message
+
+    async def mutate(self, info, room, body):
+        msg = Message(
+            room=room,
+            body=body,
+            time=datetime.utcnow(),
+            author=info.context["current_user"]
+        )
+        type_, _, data = redis.dumps(msg)
+        await info.context["request"].app.redis.publish(f"{type_}_inserted", msg)
+        return msg
+
+
 class Mutation(g.ObjectType):
     login = Login.Field()
 
     insert_room = InsertRoom.Field()
     update_room = UpdateRoom.Field()
     delete_room = DeleteRoom.Field()
+
+    insert_message = InsertMessage.Field()
