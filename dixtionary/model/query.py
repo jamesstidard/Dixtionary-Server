@@ -1,7 +1,7 @@
 import graphene as g
 from graphql.type.definition import GraphQLList
 
-from dixtionary.utils import redis
+from dixtionary.database import select, keys
 
 
 class RedisObjectType(g.ObjectType):
@@ -12,9 +12,7 @@ class RedisObjectType(g.ObjectType):
         if isinstance(cls, GraphQLList):
             cls = cls.of_type
         cls = cls.graphene_type
-        data = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
-        obj = redis.loads(data)
-        return cls(**obj)
+        return await select(cls, uuid, conn=info.context["request"].app.redis)
 
 
 class User(RedisObjectType):
@@ -91,12 +89,12 @@ class Query(g.ObjectType):
 
     async def resolve_users(self, info, uuids=None):
         if not uuids:
-            uuids = await info.context["request"].app.redis.pool.hkeys(str(User))
+            uuids = await keys(User, conn=info.context["request"].app.redis)
 
         return [Room.resolve(self, info, uuid) for uuid in uuids]
 
     async def resolve_rooms(self, info, uuids=None):
         if not uuids:
-            uuids = await info.context["request"].app.redis.pool.hkeys(str(Room))
+            uuids = await keys(Room, conn=info.context["request"].app.redis)
 
         return [Room.resolve(self, info, uuid) for uuid in uuids]

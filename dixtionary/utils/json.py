@@ -1,4 +1,4 @@
-import json
+import json as _json
 
 from datetime import datetime
 
@@ -14,10 +14,7 @@ def _default(obj):
 
 
 def dumps(entity: graphene.ObjectType):
-    type_ = str(type(entity))
-    key = entity.uuid
-    value = json.dumps(vars(entity), default=_default)
-    return type_, key, value
+    return _json.dumps(vars(entity), default=_default)
 
 
 def _hook(obj):
@@ -27,11 +24,7 @@ def _hook(obj):
         return obj
 
 
-def loads(value, *, entity=None):
+def loads(value):
     if isinstance(value, bytes):
         value = value.decode('utf-8')
-    data = json.loads(value, object_hook=_hook)
-    if entity:
-        return entity(**data)
-    else:
-        return data
+    return _json.loads(value, object_hook=_hook)

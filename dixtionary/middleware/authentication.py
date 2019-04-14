@@ -1,8 +1,7 @@
-from promise import Promise
 from itsdangerous import Serializer, BadSignature
 
 from dixtionary.model.query import User
-from dixtionary.utils import redis
+from dixtionary.database import insert, exists
 
 
 # https://github.com/graphql-python/graphql-core/issues/149
@@ -52,10 +51,9 @@ async def authorize(next, root, info, **args):
     # maybe server database has been cleared.
     # insert user as it's trusted
     user = User(**user)
-    type_, key, data = redis.dumps(user)
-    if not (await info.context["request"].app.redis.pool.hexists(type_, key)):
-        await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"user_inserted", user)
+    known = await exists(User, user.uuid, conn=info.context["request"].app.redis)
+    if not known:
+        await insert(user, conn=info.context["request"].app.redis)
 
     info.context["current_user"] = user
 

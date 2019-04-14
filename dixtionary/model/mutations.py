@@ -6,7 +6,7 @@ import graphene as g
 from itsdangerous import Serializer
 
 from .query import User, Room, Message
-from dixtionary.utils import redis
+from dixtionary.database import select, insert, update, delete
 from dixtionary import gameplay
 
 
@@ -20,9 +20,7 @@ class Login(g.Mutation):
         user = User(uuid=uuid4().hex, **kwargs)
         serializer = Serializer(info.context["request"].app.config.SECRET)
         token = serializer.dumps(vars(user))
-        type_, key, data = redis.dumps(user)
-        await info.context["request"].app.redis.pool.hmset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"user_inserted", user)
+        await insert(user, conn=info.context["request"].app.redis)
         return Login(token=token)
 
 
@@ -31,23 +29,17 @@ class RedisInsertMutation(g.Mutation):
     async def mutate(self, info, **kwargs):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
-        type_, key, data = redis.dumps(obj)
-        await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"{type_}_inserted", obj)
-        return redis.loads(data, entity=cls)
+        await insert(obj, conn=info.context["request"].app.redis)
+        return obj
 
 
 class RedisUpdateMutation(g.Mutation):
 
     async def mutate(self, info, uuid, **kwargs):
         cls = info.return_type.graphene_type
-        obj = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
-        obj = redis.loads(obj)
-        obj = {**obj, **kwargs}
-        obj = cls(**obj)
-        type_, key, data = redis.dumps(obj)
-        await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"{type_}_updated", obj)
+        obj = await select(cls, uuid, conn=info.context["request"].app.redis)
+        obj = cls(**{**vars(obj), **kwargs})
+        await update(obj, conn=info.context["request"].app.redis)
         return obj
 
 
@@ -57,11 +49,9 @@ class RedisDeleteMutation(g.Mutation):
 
     async def mutate(self, info, uuid):
         cls = info.return_type.graphene_type
-        data = await info.context["request"].app.redis.pool.hget(cls.__name__, uuid)
-        obj = redis.loads(data)
-        await info.context["request"].app.redis.pool.hdel(cls.__name__, uuid)
-        await info.context["request"].app.redis.publish(f"{cls.__name__}_deleted", obj)
-        return cls(**obj)
+        obj = await select(cls, uuid, conn=info.context["request"].app.redis)
+        await delete(obj, conn=info.context["request"].app.redis)
+        return obj
 
 
 class InsertRoom(RedisInsertMutation):
@@ -95,8 +85,7 @@ class UpdateRoom(RedisUpdateMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
-        room = Room(**redis.loads(data))
+        room = await select(Room, uuid, conn=info.context["request"].app.redis)
         user = info.context["current_user"]
 
         if room.owner != user.uuid:
@@ -109,8 +98,7 @@ class DeleteRoom(RedisDeleteMutation):
     Output = Room
 
     async def mutate(self, info, uuid, **kwargs):
-        data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
-        room = Room(**redis.loads(data))
+        room = await select(Room, uuid, conn=info.context["request"].app.redis)
         user = info.context["current_user"]
 
         if room.owner != user.uuid:
@@ -126,16 +114,14 @@ class InsertMessage(RedisInsertMutation):
 
     Output = Message
 
-    async def mutate(self, info, room, body):
+    async def mutate(self, info, **kwargs):
         msg = Message(
             uuid=uuid4().hex,
-            room=room,
-            body=body,
+            **kwargs,
             time=datetime.utcnow(),
-            author=info.context["current_user"]
+            author=info.context["current_user"],
         )
-        type_, _, data = redis.dumps(msg)
-        await info.context["request"].app.redis.publish(f"{type_}_inserted", msg)
+        await insert(msg, conn=info.context["request"].app.redis)
         return msg
 
 

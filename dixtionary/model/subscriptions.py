@@ -5,8 +5,8 @@ import graphene as g
 from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
+from dixtionary.database import select, update, delete
 from dixtionary.model.query import Message, Room
-from dixtionary.utils import redis
 from dixtionary.utils.string import underscore
 
 
@@ -21,7 +21,7 @@ async def resolve(root, info, uuids=None):
     cls = info.return_type.graphene_type
     app = info.context["request"].app
 
-    async with app.redis.subscribe(ch_name)as messages:
+    async with app.subscribe(ch_name)as messages:
         async for data in messages:
             logger.info(f"{ch_name} {id(info.context['request'])} {data}")
             obj = cls(**data)
@@ -131,17 +131,14 @@ class Subscription(g.ObjectType):
             msg = "Looks like you've been tampering with you token. Get out."
             raise ValueError(msg)
 
-        data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
-        room = Room(**redis.loads(data))
+        room = await select(Room, uuid, conn=info.context["request"].app.redis)
         room.members = [*room.members, user["uuid"]]
 
         # set to allow same person to join the room from multiple browser sessions.
         if len(set(room.members)) > room.capacity:
             raise ValueError("Sorry, the room is full.")
 
-        type_, key, data = redis.dumps(room)
-        await info.context["request"].app.redis.pool.hset(type_, key, data)
-        await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
+        await update(room, conn=info.context["request"].app.redis)
 
         yield True
 
@@ -149,24 +146,20 @@ class Subscription(g.ObjectType):
             while True:
                 await asyncio.sleep(60)
         except Exception:
-            data = await info.context["request"].app.redis.pool.hget(Room.__name__, uuid)
-            room = Room(**redis.loads(data))
+            room = await select(Room, uuid, conn=info.context["request"].app.redis)
             members = list(room.members)
             members.pop(members.index(user["uuid"]))
             room.members = members
 
             if len(room.members) == 0:
                 # last member leaves. close room.
-                await info.context["request"].app.redis.pool.hdel(type_, key)
-                await info.context["request"].app.redis.publish(f"{type_}_deleted".upper(), room)
+                await delete(room, conn=info.context["request"].app.redis)
                 logger.info(f"CLOSED ROOM {room.uuid}")
             else:
                 if room.owner not in room.members:
                     room.owner = random.choice(room.members)
 
-                type_, key, data = redis.dumps(room)
-                await info.context["request"].app.redis.pool.hset(type_, key, data)
-                await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
+                await update(room, conn=info.context["request"].app.redis)
                 logger.info(f"LEFT {uuid} {id(info.context['request'])}")
 
             raise
@@ -183,7 +176,7 @@ class Subscription(g.ObjectType):
     async def resolve_message_inserted(root, info, room):
         app = info.context["request"].app
 
-        async with app.redis.subscribe('MESSAGE_INSERTED') as subscription:
+        async with app.subscribe('MESSAGE_INSERTED') as subscription:
             async for msg in subscription:
                 message = Message(**msg)
                 if room == message.room:
