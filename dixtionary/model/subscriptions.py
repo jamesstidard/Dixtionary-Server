@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import graphene as g
 from itsdangerous import BadSignature, Serializer
@@ -153,16 +154,20 @@ class Subscription(g.ObjectType):
             members = list(room.members)
             members.pop(members.index(user["uuid"]))
             room.members = members
-            type_, key, data = redis.dumps(room)
-            await info.context["request"].app.redis.pool.hset(type_, key, data)
-            await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
-            logger.info(f"LEFT {uuid} {id(info.context['request'])}")
 
             if len(room.members) == 0:
                 # last member leaves. close room.
                 await info.context["request"].app.redis.pool.hdel(type_, key)
                 await info.context["request"].app.redis.publish(f"{type_}_deleted".upper(), room)
                 logger.info(f"CLOSED ROOM {room.uuid}")
+            else:
+                if room.owner not in room.members:
+                    room.owner = random.choice(room.members)
+
+                type_, key, data = redis.dumps(room)
+                await info.context["request"].app.redis.pool.hset(type_, key, data)
+                await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
+                logger.info(f"LEFT {uuid} {id(info.context['request'])}")
 
             raise
 
