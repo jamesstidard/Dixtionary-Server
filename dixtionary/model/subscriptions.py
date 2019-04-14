@@ -157,6 +157,13 @@ class Subscription(g.ObjectType):
             await info.context["request"].app.redis.pool.hset(type_, key, data)
             await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
             logger.info(f"LEFT {uuid} {id(info.context['request'])}")
+
+            if len(room.members) == 0:
+                # last member leaves. close room.
+                await info.context["request"].app.redis.pool.hdel(type_, key)
+                await info.context["request"].app.redis.publish(f"{type_}_deleted".upper(), room)
+                logger.info(f"CLOSED ROOM {room.uuid}")
+
             raise
 
     def resolve_user_inserted(root, info):
