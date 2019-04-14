@@ -10,7 +10,8 @@ def _default(obj):
         return obj.uuid
     elif isinstance(obj, datetime):
         return dict(__type__='timestamp', value=obj.timestamp())
-    raise ValueError(f'Unable to serialize {type(obj)}')
+    else:
+        raise ValueError(f'Unable to serialize {type(obj)}')
 
 
 def dumps(entity: graphene.ObjectType):

@@ -18,22 +18,19 @@ async def start_game(app, *, room):
         dictionary = fp.read().splitlines()
 
     opening_round = Round(
-        uuid=uuid4(),
+        uuid=uuid4().hex,
         choices=random.choices(dictionary, k=3),
         choice=None,
         artist=random.choice(list(set(room.members))),
         scores=[],
     )
     game = Game(
-        uuid=uuid4(),
+        uuid=uuid4().hex,
         rounds=[opening_round],
     )
 
     await insert(game, conn=app.redis)
     await insert(opening_round, conn=app.redis)
-
-
-
 
 
 async def tick(app, *, room):

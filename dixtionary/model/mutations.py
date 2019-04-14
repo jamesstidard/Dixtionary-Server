@@ -69,6 +69,7 @@ class InsertRoom(RedisInsertMutation):
             **kwargs,
             owner=info.context["current_user"],
             members=[],
+            chat=[],
         )
         app = info.context["request"].app
         app.add_task(gameplay.loop.run(app, room_uuid=room.uuid))
@@ -109,19 +110,24 @@ class DeleteRoom(RedisDeleteMutation):
 
 class InsertMessage(RedisInsertMutation):
     class Arguments:
-        room = g.String(required=True)
+        room_uuid = g.String(required=True)
         body = g.String(required=True)
 
     Output = Message
 
-    async def mutate(self, info, **kwargs):
+    async def mutate(self, info, room_uuid, body):
+        redis = info.context["request"].app.redis
+        room = await select(Room, room_uuid, conn=redis)
         msg = Message(
             uuid=uuid4().hex,
-            **kwargs,
+            body=body,
             time=datetime.utcnow(),
             author=info.context["current_user"],
+            room=room,
         )
-        await insert(msg, conn=info.context["request"].app.redis)
+        room.chat.append(msg)
+        await insert(msg, conn=redis)
+        await update(room, conn=redis)
         return msg
 
 

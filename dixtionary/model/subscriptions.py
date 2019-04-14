@@ -10,11 +10,8 @@ from dixtionary.model.query import Message, Room
 from dixtionary.utils.string import underscore
 
 
-async def resolve(root, info, uuids=None):
+async def resolve(root, info, filter_=None):
     ch_name = underscore(info.field_name).upper()
-
-    if uuids:
-        uuids = set(uuids)
 
     logger.info(f"SUBSCRIBED {ch_name} {id(info.context['request'])}")
 
@@ -26,9 +23,9 @@ async def resolve(root, info, uuids=None):
             logger.info(f"{ch_name} {id(info.context['request'])} {data}")
             obj = cls(**data)
 
-            if uuids and obj.uuid in uuids:
+            if filter_ and filter_(obj):
                 yield obj
-            elif not uuids:
+            elif not filter_:
                 yield obj
 
 
@@ -40,6 +37,7 @@ class RoomSubscription(g.ObjectType):
     members = g.List(g.ID, required=True)
     capacity = g.Int(required=True)
     game = g.ID(required=True)
+    chat = g.List(g.ID, required=True)
 
 
 class RoomInserted(RoomSubscription):
@@ -108,17 +106,17 @@ class Subscription(g.ObjectType):
     message_inserted = g.Field(
         Message,
         description='What did you say?',
-        room=g.String(required=False),
+        room_uuid=g.String(required=False),
     )
 
     def resolve_room_inserted(root, info):
         return resolve(root, info)
 
     def resolve_room_updated(root, info, uuids=None):
-        return resolve(root, info, uuids=uuids)
+        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
 
     def resolve_room_deleted(root, info, uuids=None):
-        return resolve(root, info, uuids=uuids)
+        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
 
     async def resolve_join_room(root, info, uuid, token):
         logger.info(f"JOINED {uuid} {id(info.context['request'])}")
@@ -168,16 +166,10 @@ class Subscription(g.ObjectType):
         return resolve(root, info)
 
     def resolve_user_updated(root, info, uuids=None):
-        return resolve(root, info, uuids=uuids)
+        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
 
     def resolve_user_deleted(root, info, uuids=None):
-        return resolve(root, info, uuids=uuids)
+        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
 
-    async def resolve_message_inserted(root, info, room):
-        app = info.context["request"].app
-
-        async with app.subscribe('MESSAGE_INSERTED') as subscription:
-            async for msg in subscription:
-                message = Message(**msg)
-                if room == message.room:
-                    yield message
+    def resolve_message_inserted(root, info, room_uuid):
+        return resolve(root, info, lambda i: i.room == room_uuid)

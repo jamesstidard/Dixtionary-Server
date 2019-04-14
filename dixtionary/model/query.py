@@ -48,10 +48,13 @@ class Game(RedisObjectType):
 
 
 class Message(RedisObjectType):
-    room = g.ID(required=True)
     time = g.DateTime(required=True)
     body = g.String(required=True)
-    author = g.ID(required=True)
+    author = g.Field(User, required=True)
+    room = g.Field('dixtionary.model.query.Room', required=True)
+
+    async def resolve_author(self, info):
+        return await User.resolve(self, info, self.author)
 
 
 class Room(RedisObjectType):
@@ -61,6 +64,7 @@ class Room(RedisObjectType):
     members = g.List(User, required=True)
     capacity = g.Int(required=True)
     game = g.Field(Game, required=True)
+    chat = g.List(Message, required=True)
 
     async def resolve_password(self, info):
         return (self.password not in {None, ''})
