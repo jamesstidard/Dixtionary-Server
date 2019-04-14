@@ -7,6 +7,7 @@ from itsdangerous import Serializer
 
 from .query import User, Room, Message
 from dixtionary.utils import redis
+from dixtionary import gameplay
 
 
 class Login(g.Mutation):
@@ -72,13 +73,16 @@ class InsertRoom(RedisInsertMutation):
     Output = Room
 
     async def mutate(self, info, **kwargs):
-        return await RedisInsertMutation.mutate(
+        room = await RedisInsertMutation.mutate(
             self,
             info,
             **kwargs,
             owner=info.context["current_user"],
             members=[],
         )
+        app = info.context["request"].app
+        app.add_task(gameplay.loop.run(app, room_uuid=room.uuid))
+        return room
 
 
 class UpdateRoom(RedisUpdateMutation):
