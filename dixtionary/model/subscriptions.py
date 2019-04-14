@@ -134,6 +134,10 @@ class Subscription(g.ObjectType):
         room = Room(**redis.loads(data))
         room.members = [*room.members, user["uuid"]]
 
+        # set to allow same person to join the room from multiple browser sessions.
+        if len(set(room.members)) > room.capacity:
+            raise ValueError("Sorry, the room is full.")
+
         type_, key, data = redis.dumps(room)
         await info.context["request"].app.redis.pool.hset(type_, key, data)
         await info.context["request"].app.redis.publish(f"{type_}_updated".upper(), room)
