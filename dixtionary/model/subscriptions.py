@@ -10,7 +10,7 @@ from dixtionary.model.query import Message, Room
 from dixtionary.utils.string import underscore
 
 
-async def resolve(root, info, filter_=None):
+async def resolve(root, info, uuids=None):
     ch_name = underscore(info.field_name).upper()
 
     logger.info(f"SUBSCRIBED {ch_name} {id(info.context['request'])}")
@@ -18,14 +18,17 @@ async def resolve(root, info, filter_=None):
     cls = info.return_type.graphene_type
     app = info.context["request"].app
 
+    if uuids:
+        uuids = set(uuids)
+
     async with app.subscribe(ch_name)as messages:
         async for data in messages:
             logger.info(f"{ch_name} {id(info.context['request'])} {data}")
             obj = cls(**data)
 
-            if filter_ and filter_(obj):
+            if uuids and obj.uuid in uuids:
                 yield obj
-            elif not filter_:
+            elif not uuids:
                 yield obj
 
 
@@ -113,10 +116,10 @@ class Subscription(g.ObjectType):
         return resolve(root, info)
 
     def resolve_room_updated(root, info, uuids=None):
-        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
+        return resolve(root, info, uuids=uuids)
 
     def resolve_room_deleted(root, info, uuids=None):
-        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
+        return resolve(root, info, uuids=uuids)
 
     async def resolve_join_room(root, info, uuid, token):
         logger.info(f"JOINED {uuid} {id(info.context['request'])}")
@@ -166,10 +169,12 @@ class Subscription(g.ObjectType):
         return resolve(root, info)
 
     def resolve_user_updated(root, info, uuids=None):
-        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
+        return resolve(root, info, uuids=uuids)
 
     def resolve_user_deleted(root, info, uuids=None):
-        return resolve(root, info, lambda i: uuids is None or i.uuid in uuids)
+        return resolve(root, info, uuids=uuids)
 
-    def resolve_message_inserted(root, info, room_uuid):
-        return resolve(root, info, lambda i: i.room == room_uuid)
+    async def resolve_message_inserted(root, info, room_uuid):
+        async for message in resolve(root, info):
+            if message.room == room_uuid:
+                yield message

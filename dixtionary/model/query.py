@@ -56,6 +56,9 @@ class Message(RedisObjectType):
     async def resolve_author(self, info):
         return await User.resolve(self, info, self.author)
 
+    async def resolve_room(self, info):
+        return await Room.resolve(self, info, self.room)
+
 
 class Room(RedisObjectType):
     name = g.String(required=True)
@@ -83,6 +86,7 @@ class Query(g.ObjectType):
     me = g.Field(User, description='Me, myself & I')
     users = g.List(User, description='Bed fellows', uuids=g.List(g.String, required=False))
     rooms = g.List(Room, description='Game rooms', uuids=g.List(g.String, required=False))
+    messages = g.List(Message, description='Chit-chat', room_uuid=g.String(required=True))
 
     def resolve_me(self, info):
         user = info.context["current_user"]
@@ -102,3 +106,7 @@ class Query(g.ObjectType):
             uuids = await keys(Room, conn=info.context["request"].app.redis)
 
         return [Room.resolve(self, info, uuid) for uuid in uuids]
+
+    async def resolve_messages(self, info, room_uuid):
+        room = await select(Room, room_uuid, conn=info.context['request'].app.redis)
+        return [Message.resolve(self, info, uuid) for uuid in room.chat]
