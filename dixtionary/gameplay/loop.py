@@ -7,7 +7,7 @@ from datetime import datetime
 from loguru import logger
 
 from dixtionary.model.query import Room, Game, Round
-from dixtionary.database import select, insert
+from dixtionary.database import select, insert, update
 
 
 TICK_RATE_SECONDS = 1
@@ -28,7 +28,9 @@ async def start_game(app, *, room):
         uuid=uuid4().hex,
         rounds=[opening_round],
     )
+    room.game = game
 
+    await update(room, conn=app.redis)
     await insert(game, conn=app.redis)
     await insert(opening_round, conn=app.redis)
 

@@ -1,5 +1,5 @@
 import graphene as g
-from graphql.type.definition import GraphQLList
+from graphql.type.definition import GraphQLList, GraphQLNonNull, GraphQLObjectType
 
 from dixtionary.database import select, keys
 
@@ -8,10 +8,18 @@ class RedisObjectType(g.ObjectType):
     uuid = g.ID(required=True)
 
     async def resolve(self, info, uuid):
-        cls = info.return_type.of_type
-        if isinstance(cls, GraphQLList):
-            cls = cls.of_type
-        cls = cls.graphene_type
+        if uuid is None:
+            return None
+
+        return_type = info.return_type
+
+        if isinstance(return_type, GraphQLList):
+            return_type = return_type.of_type
+
+        if isinstance(return_type, GraphQLNonNull):
+            return_type = return_type.of_type
+
+        cls = return_type.graphene_type
         return await select(cls, uuid, conn=info.context["request"].app.redis)
 
 
@@ -66,7 +74,7 @@ class Room(RedisObjectType):
     password = g.Boolean(required=True)
     members = g.List(User, required=True)
     capacity = g.Int(required=True)
-    game = g.Field(Game, required=True)
+    game = g.Field(Game, required=False)
     chat = g.List(Message, required=True)
 
     async def resolve_password(self, info):

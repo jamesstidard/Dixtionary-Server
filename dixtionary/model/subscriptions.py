@@ -39,7 +39,7 @@ class RoomSubscription(g.ObjectType):
     password = g.String(required=False)
     members = g.List(g.ID, required=True)
     capacity = g.Int(required=True)
-    game = g.ID(required=True)
+    game = g.ID(required=False)
     chat = g.List(g.ID, required=True)
 
 
