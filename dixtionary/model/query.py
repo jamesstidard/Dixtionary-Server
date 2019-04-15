@@ -13,10 +13,7 @@ class RedisObjectType(g.ObjectType):
 
         return_type = info.return_type
 
-        if isinstance(return_type, GraphQLList):
-            return_type = return_type.of_type
-
-        if isinstance(return_type, GraphQLNonNull):
+        while hasattr(return_type, 'of_type'):
             return_type = return_type.of_type
 
         cls = return_type.graphene_type
