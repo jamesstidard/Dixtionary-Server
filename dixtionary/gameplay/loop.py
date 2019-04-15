@@ -41,6 +41,7 @@ async def tick(app, *, room):
     # TODO: single forward running function. await second cooroutine that checks for
     # members < 2 which interupts the other function
     # other forward running function will do things like await artist_chosen(timeout=10)
+    # outer while True loop wraps this to restart games after all rounds complete
 
     if len(room.members) > 1 and room.game is None:
         await start_game(app, room=room)
