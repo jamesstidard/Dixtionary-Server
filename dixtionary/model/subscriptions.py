@@ -11,19 +11,17 @@ from dixtionary.utils.string import underscore
 
 
 async def resolve(root, info, uuids=None):
-    ch_name = underscore(info.field_name).upper()
-
-    logger.info(f"SUBSCRIBED {ch_name} {id(info.context['request'])}")
-
-    cls = info.return_type.graphene_type
-    app = info.context["request"].app
-
     if uuids:
         uuids = set(uuids)
 
-    async with app.subscribe(ch_name)as messages:
+    channel = underscore(info.field_name).upper()
+    cls = info.return_type.graphene_type
+    app = info.context["request"].app
+
+    logger.info(f"SUBSCRIBED {channel} {id(info.context['request'])}")
+    async with app.subscribe(channel)as messages:
         async for data in messages:
-            logger.info(f"{ch_name} {id(info.context['request'])} {data}")
+            logger.info(f"{channel} {id(info.context['request'])} {data}")
             obj = cls(**data)
 
             if uuids and obj.uuid in uuids:
