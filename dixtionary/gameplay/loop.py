@@ -49,6 +49,8 @@ async def host_game(app, *, room_uuid):
 
             # append scores as guesses come in
 
+            # rounds need turns...
+
             while True:
                 await asyncio.sleep(1)
 
