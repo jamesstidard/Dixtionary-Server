@@ -149,18 +149,8 @@ class Subscription(g.ObjectType):
             members = list(room.members)
             members.pop(members.index(user["uuid"]))
             room.members = members
-
-            if len(room.members) == 0:
-                # last member leaves. close room.
-                await delete(room, conn=info.context["request"].app.redis)
-                logger.info(f"CLOSED ROOM {room.uuid}")
-            else:
-                if room.owner not in room.members:
-                    room.owner = random.choice(room.members)
-
-                await update(room, conn=info.context["request"].app.redis)
-                logger.info(f"LEFT {uuid} {id(info.context['request'])}")
-
+            await update(room, conn=info.context["request"].app.redis)
+            logger.info(f"LEFT {uuid} {id(info.context['request'])}")
             raise
 
     def resolve_user_inserted(root, info):
