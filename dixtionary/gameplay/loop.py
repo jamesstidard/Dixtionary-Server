@@ -14,15 +14,21 @@ with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
     DICTIONARY = fp.read().splitlines()
 
 
-async def artist_chooses(app, *, room_uuid, last_known=None):
-    async with app.subscribe('ROUND_UPDATED') as messages:
-        async for data in messages:
-            if data['uuid'] != room_uuid:
-                continue
+async def artist_chooses(app, *, round_uuid):
+    round_ = await select(Room, round_uuid, conn=app.redis)
 
-            room = Room(**data)
-            if set(room.members) != set(last_known):
-                return room
+    if round_.choice:
+        return round_.choice
+    else:
+        async with app.subscribe('ROUND_UPDATED') as messages:
+            async for data in messages:
+                round_ = Round(**data)
+
+                if round_.uuid != round_uuid:
+                    continue
+
+                if round_.choice:
+                    return round_.choice
 
 
 async def next_turn(app, *, room_uuid, round_uuid):
