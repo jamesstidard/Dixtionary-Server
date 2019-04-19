@@ -149,6 +149,7 @@ async def run(app, *, room_uuid):
             # promote new owner if they've gone
             if room.members and room.owner not in room.members:
                 room.owner = random.choice(room.members)
+                await update(room, conn=app.redis)
 
             # user could have multiple browser tabs open
             unique_members = set(room.members)
