@@ -127,24 +127,21 @@ async def members_change(app, *, room_uuid, last_known=None):
 async def run(app, *, room_uuid):
     logger.info(f"GAME LOOP STARTED {room_uuid}")
     game = None
-    membership = asyncio.create_task(
+    membership_changed = asyncio.create_task(
         members_change(app, room_uuid=room_uuid)
     )
 
-    pending = {membership}
+    pending = {membership_changed}
 
     while True:
         done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
 
-        [done] = done
-        game_running = game in pending
-
-        if done is membership:
+        if membership_changed in done:
             room = await done
-            membership = asyncio.create_task(
+            membership_changed = asyncio.create_task(
                 members_change(app, room_uuid=room_uuid, last_known=room.members)
             )
-            pending = {*pending, membership}
+            pending = {*pending, membership_changed}
 
             # promote new owner if they've gone
             if room.members and room.owner not in room.members:
@@ -154,6 +151,7 @@ async def run(app, *, room_uuid):
             # user could have multiple browser tabs open
             unique_members = set(room.members)
 
+            game_running = game in pending
             start_game = len(unique_members) >= 2 and not game_running
             suspend_game = len(unique_members) == 1 and game_running
             close_room = len(unique_members) == 0
@@ -173,7 +171,7 @@ async def run(app, *, room_uuid):
                 logger.info(f"ROOM CLOSED {room.uuid}")
                 break
 
-        elif done is game:
+        elif game in done:
             logger.info(f"GAME COMPLETE, RESTARTING {room.uuid}")
             game = asyncio.create_task(host_game(app, room_uuid=room_uuid))
             pending = {*pending, game}
