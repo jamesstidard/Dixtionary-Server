@@ -133,6 +133,8 @@ async def run(app, *, room_uuid):
 
         if membership_changed is done:
             room = await done
+
+            # re-register for next change
             membership_changed = asyncio.create_task(
                 members_change(app, room_uuid=room_uuid, last_known=room.members)
             )
@@ -145,7 +147,6 @@ async def run(app, *, room_uuid):
 
             # user could have multiple browser tabs open
             unique_members = set(room.members)
-
             game_running = game in pending
             start_game = len(unique_members) >= 2 and not game_running
             suspend_game = len(unique_members) == 1 and game_running
