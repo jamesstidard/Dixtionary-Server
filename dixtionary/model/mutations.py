@@ -151,6 +151,12 @@ class UpdateTurn(RedisUpdateMutation):
                 f"Not a valid choice. You must choose between {str_list(turn.choice)}"
             )
 
+        if turn.choice:
+            raise ValueError(
+                f"You've already chosen {turn.choice}; "
+                "You'll have to learn to live with it."
+            )
+
         return await RedisUpdateMutation.mutate(self, info, uuid, choice=choice)
 
 
