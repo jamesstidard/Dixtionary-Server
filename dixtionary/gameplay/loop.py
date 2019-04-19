@@ -15,18 +15,14 @@ with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
 
 
 async def artist_chooses(app, *, room_uuid, last_known=None):
-    try:
-        async with app.subscribe('ROUND_UPDATED') as messages:
-            async for data in messages:
-                if data['uuid'] != room_uuid:
-                    continue
+    async with app.subscribe('ROUND_UPDATED') as messages:
+        async for data in messages:
+            if data['uuid'] != room_uuid:
+                continue
 
-                room = Room(**data)
-                if set(room.members) != set(last_known):
-                    return room
-
-    except asyncio.CancelledError:
-        pass
+            room = Room(**data)
+            if set(room.members) != set(last_known):
+                return room
 
 
 async def next_turn(app, *, room_uuid, round_uuid):
@@ -91,8 +87,6 @@ async def host_game(app, *, room_uuid):
                 # except TimeoutError:
                 #     pass
 
-
-
             # await artist choice or leaves or timesout
 
             # start round timer and listen to chat messages
@@ -135,8 +129,9 @@ async def run(app, *, room_uuid):
 
     while True:
         done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        [done] = done
 
-        if membership_changed in done:
+        if membership_changed is done:
             room = await done
             membership_changed = asyncio.create_task(
                 members_change(app, room_uuid=room_uuid, last_known=room.members)
@@ -171,7 +166,7 @@ async def run(app, *, room_uuid):
                 logger.info(f"ROOM CLOSED {room.uuid}")
                 break
 
-        elif game in done:
+        elif game is done:
             logger.info(f"GAME COMPLETE, RESTARTING {room.uuid}")
             game = asyncio.create_task(host_game(app, room_uuid=room_uuid))
             pending = {*pending, game}
