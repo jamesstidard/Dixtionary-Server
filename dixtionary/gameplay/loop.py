@@ -28,7 +28,7 @@ async def artist_choice(app, *, round_uuid):
                 return round_.choice
 
 
-async def next_turn(app, *, room_uuid, round_uuid):
+async def turns(app, *, room_uuid, round_uuid):
     while True:
         room = await select(Room, room_uuid, conn=app.redis)
         round_ = await select(Round, round_uuid, conn=app.redis)
@@ -75,7 +75,7 @@ async def host_game(app, *, room_uuid):
             await insert(round_, conn=app.redis)
             await update(game, conn=app.redis)
 
-            async for turn in next_turn(app, room_uuid=room.uuid, round_uuid=round_.uuid):
+            async for turn in turns(app, room_uuid=room.uuid, round_uuid=round_.uuid):
                 logger.info(f"TURN {turn.artist} {room_uuid}")
                 round_.turns.append(turn)
                 await insert(turn, conn=app.redis)
