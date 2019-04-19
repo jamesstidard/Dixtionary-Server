@@ -1,6 +1,24 @@
 import graphene as g
+from graphene.types import Scalar
+from graphql.language import ast
 
 from dixtionary.database import select, keys
+
+
+class Seconds(Scalar):
+
+    @staticmethod
+    def serialize(value):
+        return value
+
+    @staticmethod
+    def parse_literal(node):
+        if isinstance(node, ast.IntValue):
+            return node.value
+
+    @staticmethod
+    def parse_value(value):
+        return value
 
 
 class RedisObjectType(g.ObjectType):
@@ -36,6 +54,7 @@ class Turn(RedisObjectType):
     choice = g.String(required=False)
     artist = g.Field(User, required=True)
     scores = g.List(Score)
+    remaining = Seconds(required=False)
 
     async def resolve_artist(self, info):
         return await User.resolve(self, info, self.artist)
