@@ -5,9 +5,10 @@ import graphene as g
 
 from itsdangerous import Serializer
 
-from .query import User, Room, Message
+from .query import User, Room, Message, Turn
 from dixtionary.database import select, insert, update, delete
 from dixtionary import gameplay
+from dixtionary.utils.string import str_list
 
 
 class Login(g.Mutation):
@@ -131,6 +132,28 @@ class InsertMessage(RedisInsertMutation):
         return msg
 
 
+class UpdateTurn(RedisUpdateMutation):
+    class Arguments:
+        uuid = g.ID(required=True)
+        choice = g.String(required=False)
+
+    Output = Turn
+
+    async def mutate(self, info, uuid, choice):
+        turn = await select(Turn, uuid, conn=info.context["request"].app.redis)
+        user = info.context["current_user"]
+
+        if turn.artist != user.uuid:
+            raise ValueError("Not your turn to choose")
+
+        if choice not in turn.choices:
+            raise ValueError(
+                f"Not a valid choice. You must choose between {str_list(turn.choice)}"
+            )
+
+        return await RedisUpdateMutation.mutate(self, info, uuid, choice=choice)
+
+
 class Mutation(g.ObjectType):
     login = Login.Field()
 
@@ -139,3 +162,5 @@ class Mutation(g.ObjectType):
     delete_room = DeleteRoom.Field()
 
     insert_message = InsertMessage.Field()
+
+    update_turn = UpdateTurn.Field()
