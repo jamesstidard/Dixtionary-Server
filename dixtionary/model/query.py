@@ -55,6 +55,7 @@ class Turn(RedisObjectType):
     artist = g.Field(User, required=True)
     scores = g.List(Score)
     remaining = Seconds(required=False)
+    artwork = g.JSONString(required=False)
 
     async def resolve_artist(self, info):
         return await User.resolve(self, info, self.artist)

@@ -136,19 +136,20 @@ class UpdateTurn(RedisUpdateMutation):
     class Arguments:
         uuid = g.ID(required=True)
         choice = g.String(required=False)
+        artwork = g.JSONString(required=False)
 
     Output = Turn
 
-    async def mutate(self, info, uuid, choice):
+    async def mutate_choice(self, info, uuid, choice):
         turn = await select(Turn, uuid, conn=info.context["request"].app.redis)
         user = info.context["current_user"]
 
         if turn.artist != user.uuid:
-            raise ValueError("Not your turn to choose")
+            raise ValueError("Not your turn to choose.")
 
         if choice not in turn.choices:
             raise ValueError(
-                f"Not a valid choice. You must choose between {str_list(turn.choice)}"
+                f"Not a valid choice. You must choose between {str_list(turn.choice)}."
             )
 
         if turn.choice:
@@ -158,6 +159,20 @@ class UpdateTurn(RedisUpdateMutation):
             )
 
         return await RedisUpdateMutation.mutate(self, info, uuid, choice=choice)
+
+    async def mutate_artwork(self, info, uuid, artwork):
+        turn = await select(Turn, uuid, conn=info.context["request"].app.redis)
+        user = info.context["current_user"]
+
+        if turn.artist != user.uuid:
+            raise ValueError("Not your turn to draw.")
+
+        if not turn.choice:
+            raise ValueError(
+                f"Need to choose something to draw first."
+            )
+
+        return await RedisUpdateMutation.mutate(self, info, uuid, artwork=artwork)
 
 
 class Mutation(g.ObjectType):
