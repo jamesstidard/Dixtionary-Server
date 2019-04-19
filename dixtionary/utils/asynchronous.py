@@ -1,10 +1,8 @@
 import asyncio
 
-from typing import Iterable
-
 
 async def cancel_tasks(tasks):
-    if not isinstance(tasks, Iterable):
+    if asyncio.isfuture(tasks):
         tasks = [tasks]
 
     tasks = asyncio.gather(*tasks)

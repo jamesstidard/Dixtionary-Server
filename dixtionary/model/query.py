@@ -31,7 +31,7 @@ class Score(RedisObjectType):
         return await User.resolve(self, info, self.user)
 
 
-class Round(RedisObjectType):
+class Turn(RedisObjectType):
     choices = g.List(g.String, required=True)
     choice = g.String(required=False)
     artist = g.Field(User, required=True)
@@ -42,6 +42,10 @@ class Round(RedisObjectType):
 
     async def resolve_scores(self, info):
         return [Score.resolve(self, info, uuid) for uuid in self.scores]
+
+
+class Round(RedisObjectType):
+    turns = g.List(Turn, required=True)
 
 
 class Game(RedisObjectType):

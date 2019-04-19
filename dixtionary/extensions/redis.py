@@ -13,6 +13,7 @@ class Redis:
         async def before_server_start(app, loop):
             app.redis = await aioredis.create_redis_pool(**kwargs, loop=loop)
             app.subscribe = partial(subscribe, **kwargs, loop=loop)
+            await app.redis.flushall()
 
         @app.listener('after_server_stop')
         async def after_server_stop(app, loop):
