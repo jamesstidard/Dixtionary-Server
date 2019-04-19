@@ -172,6 +172,11 @@ class UpdateTurn(RedisUpdateMutation):
                 f"Need to choose something to draw first."
             )
 
+        if not turn.duration:
+            raise ValueError(
+                "The clocks not running. Would be cheating to draw now."
+            )
+
         return await RedisUpdateMutation.mutate(self, info, uuid, artwork=artwork)
 
 
