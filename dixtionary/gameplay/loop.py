@@ -19,16 +19,13 @@ async def artist_chooses(app, *, round_uuid):
 
     if round_.choice:
         return round_.choice
-    else:
-        async with app.subscribe('ROUND_UPDATED') as messages:
-            async for data in messages:
-                round_ = Round(**data)
 
-                if round_.uuid != round_uuid:
-                    continue
+    async with app.subscribe('ROUND_UPDATED') as messages:
+        async for data in messages:
+            round_ = Round(**data)
 
-                if round_.choice:
-                    return round_.choice
+            if round_.uuid == round_uuid and round_.choice:
+                return round_.choice
 
 
 async def next_turn(app, *, room_uuid, round_uuid):
