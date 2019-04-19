@@ -61,7 +61,7 @@ async def host_game(app, *, room_uuid):
         await update(room, conn=app.redis)
         await insert(game, conn=app.redis)
 
-        for round_number in range(8):
+        for round_number in range(1, 9):
             logger.info(f"STARTING ROUND {round_number} {room_uuid}")
             round_ = Round(
                 uuid=uuid4().hex,
