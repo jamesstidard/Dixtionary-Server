@@ -14,7 +14,7 @@ with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
     DICTIONARY = fp.read().splitlines()
 
 
-async def artist_chooses(app, *, round_uuid):
+async def artist_choice(app, *, round_uuid):
     round_ = await select(Room, round_uuid, conn=app.redis)
 
     if round_.choice:
