@@ -11,7 +11,7 @@ def main():
         port=Config.PORT,
         debug=Config.DEBUG,
         workers=Config.WORKERS,
-        auto_reload=False,  # This feature breaks pycharm debugger hooks: https://youtrack.jetbrains.com/issue/PY-32952
+        auto_reload=False,  # This feature breaks debugger hooks
     )
 
 
