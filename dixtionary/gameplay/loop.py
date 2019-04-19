@@ -105,18 +105,14 @@ async def members_change(app, *, room_uuid, last_known=None):
     if last_known is None:
         last_known = {object()}
 
-    try:
-        async with app.subscribe('ROOM_UPDATED') as messages:
-            async for data in messages:
-                if data['uuid'] != room_uuid:
-                    continue
+    async with app.subscribe('ROOM_UPDATED') as messages:
+        async for data in messages:
+            if data['uuid'] != room_uuid:
+                continue
 
-                room = Room(**data)
-                if set(room.members) != set(last_known):
-                    return room
-
-    except asyncio.CancelledError:
-        pass
+            room = Room(**data)
+            if set(room.members) != set(last_known):
+                return room
 
 
 async def run(app, *, room_uuid):
