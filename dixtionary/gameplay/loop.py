@@ -96,8 +96,9 @@ async def host_game(app, *, room_uuid):
             # rounds need turns...
 
     except asyncio.CancelledError:
-        logger.warning("cleanup database and remove game from room")
         pass
+    finally:
+        logger.warning("cleanup database and remove game from room")
 
 
 async def members_change(app, *, room_uuid, last_known=None):
