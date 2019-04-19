@@ -1,11 +1,10 @@
 import asyncio
-import random
 
 import graphene as g
 from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
-from dixtionary.database import select, update, delete
+from dixtionary.database import select, update
 from dixtionary.model.query import Message, Room
 from dixtionary.utils.string import underscore
 
