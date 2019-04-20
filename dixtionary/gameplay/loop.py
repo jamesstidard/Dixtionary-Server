@@ -7,7 +7,7 @@ from loguru import logger
 
 from dixtionary.model.query import Room, Game, Round, Turn, Score, Message
 from dixtionary.database import select, insert, update, delete
-from dixtionary.utils.asynchronous import cancel_tasks
+from dixtionary.utils.asynchronous import cancel_tasks, first_completed
 
 
 with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
@@ -109,12 +109,8 @@ async def host_game(app, *, room_uuid):
                     member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
                 )
 
-                done, pending = await asyncio.wait(
-                    {choice, timeout, artist_leaves},
-                    return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await first_completed({choice, timeout, artist_leaves})
                 await cancel_tasks(pending)
-                [done] = done
 
                 if done in {timeout, artist_leaves}:
                     continue
@@ -174,8 +170,7 @@ async def run(app, *, room_uuid):
     pending = {membership_changed}
 
     while True:
-        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-        [done] = done
+        done, pending = await first_completed(pending)
 
         if membership_changed is done:
             room = await done

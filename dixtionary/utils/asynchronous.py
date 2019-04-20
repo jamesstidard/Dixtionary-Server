@@ -12,3 +12,8 @@ async def cancel_tasks(tasks):
         await tasks
     except asyncio.CancelledError:
         pass
+
+
+async def first_completed(tasks):
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    return done[0], pending
