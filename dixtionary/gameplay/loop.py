@@ -122,8 +122,6 @@ async def host_game(app, *, room_uuid):
 
                 choice = await choice
 
-                # await artist choice or leaves or timesout
-
                 # start round timer and listen to chat messages
 
                 # append scores as guesses come in
