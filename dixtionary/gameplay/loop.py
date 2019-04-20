@@ -99,6 +99,7 @@ async def host_game(app, *, room_uuid):
                 await insert(turn, conn=app.redis)
                 await update(round_, conn=app.redis)
 
+                # wait for artists word choice
                 timeout = asyncio.create_task(
                     countdown(app, seconds=10, turn_uuid=turn.uuid)
                 )
@@ -115,11 +116,8 @@ async def host_game(app, *, room_uuid):
                 if done in {timeout, artist_leaves}:
                     continue
 
-                choice = await choice
-
-                # start round timer and listen to chat messages
-
-                # append scores as guesses come in
+                # start round timer
+                await countdown(app, seconds=60, turn_uuid=turn.uuid)
 
         # let the winners bask in their glory
         game = await select(Game, game.uuid, conn=app.redis)
