@@ -115,6 +115,7 @@ async def host_game(app, *, room_uuid):
                     {choice, timeout, artist_leaves},
                     return_when=asyncio.FIRST_COMPLETED
                 )
+                await cancel_tasks(pending)
                 [done] = done
 
                 if done in {timeout, artist_leaves}:
