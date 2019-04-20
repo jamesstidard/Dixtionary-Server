@@ -99,8 +99,6 @@ async def host_game(app, *, room_uuid):
                 await insert(turn, conn=app.redis)
                 await update(round_, conn=app.redis)
 
-                await asyncio.sleep(10)
-
                 timeout = asyncio.create_task(
                     countdown(app, seconds=10, turn_uuid=turn.uuid)
                 )
