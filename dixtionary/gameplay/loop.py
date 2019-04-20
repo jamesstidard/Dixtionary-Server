@@ -116,7 +116,7 @@ async def host_game(app, *, room_uuid):
                 if done in {timeout, artist_leaves}:
                     continue
 
-                # start round timer
+                # start turn timer
                 await countdown(app, seconds=60, turn_uuid=turn.uuid)
 
         # let the winners bask in their glory
