@@ -107,9 +107,20 @@ async def host_game(app, *, room_uuid):
                 choice = asyncio.create_task(
                     artist_choice(app, turn_uuid=turn.uuid)
                 )
-                leaves = asyncio.create_task(
-                    member_leaves(app, room_uuid=room_uuid, member_uuid=turn.uuid)
+                artist_leaves = asyncio.create_task(
+                    member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
                 )
+
+                done, pending = await asyncio.wait(
+                    {choice, timeout, artist_leaves},
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                [done] = done
+
+                if done in {timeout, artist_leaves}:
+                    continue
+
+                choice = await choice
 
                 # await artist choice or leaves or timesout
 
