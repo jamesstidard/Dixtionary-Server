@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from loguru import logger
 
-from dixtionary.model.query import Room, Game, Round, Turn
+from dixtionary.model.query import Room, Game, Round, Turn, Score, Message
 from dixtionary.database import select, insert, update, delete
 from dixtionary.utils.asynchronous import cancel_tasks
 
@@ -28,7 +28,7 @@ async def artist_choice(app, *, round_uuid):
                 return round_.choice
 
 
-async def turns(app, *, room_uuid, round_uuid):
+async def cycle_turns(app, *, room_uuid, round_uuid):
     while True:
         room = await select(Room, room_uuid, conn=app.redis)
         round_ = await select(Round, round_uuid, conn=app.redis)
@@ -76,7 +76,9 @@ async def host_game(app, *, room_uuid):
             await insert(round_, conn=app.redis)
             await update(game, conn=app.redis)
 
-            async for turn in turns(app, room_uuid=room.uuid, round_uuid=round_.uuid):
+            turns = cycle_turns(app, room_uuid=room.uuid, round_uuid=round_.uuid)
+
+            async for turn in turns:
                 logger.info(f"TURN {turn.artist} {room_uuid}")
                 round_.turns.append(turn)
                 await insert(turn, conn=app.redis)
@@ -91,23 +93,24 @@ async def host_game(app, *, room_uuid):
                 # except TimeoutError:
                 #     pass
 
-            # await artist choice or leaves or timesout
+                # await artist choice or leaves or timesout
 
-            # start round timer and listen to chat messages
+                # start round timer and listen to chat messages
 
-            # append scores as guesses come in
+                # append scores as guesses come in
 
-            # rounds need turns...
-
-    except asyncio.CancelledError:
-        pass
-    else:
         # let the winners bask in their glory
-        game = select(Game, game.uuid, conn=app.redis)
+        game = await select(Game, game.uuid, conn=app.redis)
         game.complete = True
         await asyncio.sleep(10)
     finally:
-        logger.warning("cleanup database and remove game from room")
+        game = await select(Game, game.uuid, conn=app.redis)
+        rounds = [await select(Round, r, conn=app.redis) for r in game.rounds]
+        turns = [await select(Turn, t, conn=app.redis) for r in rounds for t in r.turns]
+        scores = [await select(Score, s, conn=app.redis) for t in turns for s in t.scores]
+
+        for entity in [game, *rounds, *turns, *scores]:
+            await delete(entity, conn=app.redis)
 
 
 async def members_change(app, *, room_uuid, last_known=None):
@@ -169,7 +172,11 @@ async def run(app, *, room_uuid):
             elif close_room:
                 await cancel_tasks(pending)
                 room = await select(Room, room_uuid, conn=app.redis)
-                await delete(room, conn=app.redis)
+                messages = [select(Message, m, conn=app.redis) for m in room.messages]
+
+                for entity in [room, *messages]:
+                    await delete(entity, conn=app.redis)
+
                 logger.info(f"ROOM CLOSED {room.uuid}")
                 break
 
