@@ -14,18 +14,33 @@ with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
     DICTIONARY = fp.read().splitlines()
 
 
-async def artist_choice(app, *, round_uuid):
-    round_ = await select(Room, round_uuid, conn=app.redis)
+async def countdown(app, *, seconds, turn_uuid):
+    turn = await select(Turn, turn_uuid, conn=app.redis)
+    turn.remaining = seconds
+    await update(turn, conn=app.redis)
 
-    if round_.choice:
-        return round_.choice
+    while True:
+        await asyncio.sleep(1)
+        turn = await select(Turn, turn_uuid, conn=app.redis)
+        turn.remaining -= 1
+        await update(turn, conn=app.redis)
 
-    async with app.subscribe('ROUND_UPDATED') as messages:
+        if turn.remaining == 0:
+            break
+
+
+async def artist_choice(app, *, turn_uuid):
+    turn = await select(Turn, turn_uuid, conn=app.redis)
+
+    if turn.choice:
+        return turn.choice
+
+    async with app.subscribe('TURN_UPDATED') as messages:
         async for data in messages:
-            round_ = Round(**data)
+            turn = Turn(**data)
 
-            if round_.uuid == round_uuid and round_.choice:
-                return round_.choice
+            if turn.uuid == turn_uuid and turn.choice:
+                return turn.choice
 
 
 async def cycle_turns(app, *, room_uuid, round_uuid):
@@ -86,12 +101,15 @@ async def host_game(app, *, room_uuid):
 
                 await asyncio.sleep(10)
 
-                # try:
-                #     choice = await artist_choice(turn_uuid=turn_uuid, timeout=10)
-                # except ConnectionError:
-                #     pass
-                # except TimeoutError:
-                #     pass
+                timeout = asyncio.create_task(
+                    countdown(app, seconds=10, turn_uuid=turn.uuid)
+                )
+                choice = asyncio.create_task(
+                    artist_choice(app, turn_uuid=turn.uuid)
+                )
+                leaves = asyncio.create_task(
+                    member_leaves(app, room_uuid=room_uuid, member_uuid=turn.uuid)
+                )
 
                 # await artist choice or leaves or timesout
 
@@ -126,6 +144,16 @@ async def members_change(app, *, room_uuid, last_known=None):
             room = Room(**data)
             if set(room.members) != set(last_known):
                 return room
+
+
+async def member_leaves(app, *, room_uuid, member_uuid):
+    room = await select(Room, room_uuid, conn=app.redis)
+    if member_uuid not in room.members:
+        return True
+
+    async for room in members_change(app, room_uuid=room_uuid):
+        if member_uuid not in room.members:
+            return True
 
 
 async def run(app, *, room_uuid):
