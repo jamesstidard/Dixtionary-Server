@@ -77,8 +77,10 @@ async def host_game(app, *, room_uuid):
         )
         room.game = game
 
-        await update(room, conn=app.redis)
+        logger.info(f"CREATING GAME {game.uuid}")
         await insert(game, conn=app.redis)
+        await asyncio.sleep(1)
+        await update(room, conn=app.redis)
 
         for round_number in range(1, 9):
             logger.info(f"STARTING ROUND {round_number} {room_uuid}")
@@ -87,6 +89,7 @@ async def host_game(app, *, room_uuid):
                 turns=[],
             )
 
+            game = await select(Game, game.uuid, conn=app.redis)
             game.rounds.append(round_)
             await insert(round_, conn=app.redis)
             await update(game, conn=app.redis)
@@ -134,6 +137,10 @@ async def host_game(app, *, room_uuid):
         rounds = [await select(Round, r, conn=app.redis) for r in game.rounds]
         turns = [await select(Turn, t, conn=app.redis) for r in rounds for t in r.turns]
         scores = [await select(Score, s, conn=app.redis) for t in turns for s in t.scores]
+
+        room = await select(Room, room_uuid, conn=app.redis)
+        room.game = None
+        await update(room, conn=app.redis)
 
         for entity in [game, *rounds, *turns, *scores]:
             await delete(entity, conn=app.redis)

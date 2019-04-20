@@ -21,41 +21,41 @@ class Seconds(Scalar):
         return value
 
 
-class RedisObjectType(g.ObjectType):
+class User(g.ObjectType):
     uuid = g.ID(required=True)
-
-    async def resolve(self, info, uuid):
-        if uuid is None:
-            return None
-
-        return_type = info.return_type
-
-        while hasattr(return_type, 'of_type'):
-            return_type = return_type.of_type
-
-        cls = return_type.graphene_type
-        return await select(cls, uuid, conn=info.context["request"].app.redis)
-
-
-class User(RedisObjectType):
     name = g.String(required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(User, self.uuid, conn=conn)
 
-class Score(RedisObjectType):
+
+class Score(g.ObjectType):
+    uuid = g.ID(required=True)
     user = g.Field(User, required=True)
     value = g.Int(required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(User, self.uuid, conn=conn)
+
     async def resolve_user(self, info):
-        return await User.resolve(self, info, self.user)
+        conn = info.context["request"].app.redis
+        return await select(User, self.user, conn=conn)
 
 
-class Turn(RedisObjectType):
+class Turn(g.ObjectType):
+    uuid = g.ID(required=True)
     choices = g.List(g.String, required=True)
     choice = g.String(required=False)
     artist = g.Field(User, required=True)
     scores = g.List(Score)
     remaining = Seconds(required=False)
     artwork = g.JSONString(required=False)
+
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(Turn, self.uuid, conn=conn)
 
     def resolve_choice(self, info):
         user = info.context["current_user"]
@@ -72,38 +72,63 @@ class Turn(RedisObjectType):
             return []
 
     async def resolve_artist(self, info):
-        return await User.resolve(self, info, self.artist)
+        conn = info.context["request"].app.redis
+        return await select(User, self.artist, conn=conn)
 
     async def resolve_scores(self, info):
-        return [Score.resolve(self, info, uuid) for uuid in self.scores]
+        conn = info.context["request"].app.redis
+        return [await select(Score, uuid, conn=conn) for uuid in self.scores]
 
 
-class Round(RedisObjectType):
+class Round(g.ObjectType):
+    uuid = g.ID(required=True)
     turns = g.List(Turn, required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(Round, self.uuid, conn=conn)
 
-class Game(RedisObjectType):
+    async def resolve_turns(self, info):
+        conn = info.context["request"].app.redis
+        return [await select(Turn, uuid, conn=conn) for uuid in self.turns]
+
+
+class Game(g.ObjectType):
+    uuid = g.ID(required=True)
     rounds = g.List(Round)
     complete = g.Boolean(required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(Game, self.uuid, conn=conn)
+
     async def resolve_rounds(self, info):
-        return [Round.resolve(self, info, uuid) for uuid in self.rounds]
+        conn = info.context["request"].app.redis
+        return [await select(Round, uuid, conn=conn) for uuid in self.rounds]
 
 
-class Message(RedisObjectType):
+class Message(g.ObjectType):
+    uuid = g.ID(required=True)
     time = g.DateTime(required=True)
     body = g.String(required=True)
     author = g.Field(User, required=True)
     room = g.Field('dixtionary.model.query.Room', required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(Message, self.uuid, conn=conn)
+
     async def resolve_author(self, info):
-        return await User.resolve(self, info, self.author)
+        conn = info.context["request"].app.redis
+        return await select(User, self.author, conn=conn)
 
     async def resolve_room(self, info):
-        return await Room.resolve(self, info, self.room)
+        conn = info.context["request"].app.redis
+        return await select(Room, self.room, conn=conn)
 
 
-class Room(RedisObjectType):
+class Room(g.ObjectType):
+    uuid = g.ID(required=True)
     name = g.String(required=True)
     owner = g.Field(User, required=True)
     password = g.Boolean(required=True)
@@ -112,17 +137,25 @@ class Room(RedisObjectType):
     game = g.Field(Game, required=False)
     chat = g.List(Message, required=True)
 
+    async def resolve(self, info):
+        conn = info.context["request"].app.redis
+        return await select(Room, self.uuid, conn=conn)
+
     async def resolve_password(self, info):
         return (self.password not in {None, ''})
 
     async def resolve_owner(self, info):
-        return await User.resolve(self, info, self.owner)
+        conn = info.context["request"].app.redis
+        return await select(User, self.owner, conn=conn)
 
     async def resolve_members(self, info):
-        return [User.resolve(self, info, uuid) for uuid in self.members]
+        conn = info.context["request"].app.redis
+        return [await select(User, uuid, conn=conn) for uuid in self.members]
 
     async def resolve_game(self, info):
-        return await Game.resolve(self, info, self.game)
+        if self.game:
+            conn = info.context["request"].app.redis
+            return await select(Game, self.game, conn=conn)
 
 
 class Query(g.ObjectType):
@@ -156,23 +189,27 @@ class Query(g.ObjectType):
         return info.context["current_user"]
 
     async def resolve_users(self, info, uuids=None):
+        conn = info.context["request"].app.redis
         if not uuids:
-            uuids = await keys(User, conn=info.context["request"].app.redis)
+            uuids = await keys(User, conn=conn)
 
-        return [Room.resolve(self, info, uuid) for uuid in uuids]
+        return [await select(User, uuid, conn=conn) for uuid in uuids]
 
     async def resolve_rooms(self, info, uuids=None):
+        conn = info.context["request"].app.redis
         if not uuids:
-            uuids = await keys(Room, conn=info.context["request"].app.redis)
+            uuids = await keys(Room, conn=conn)
 
-        return [Room.resolve(self, info, uuid) for uuid in uuids]
+        return [await select(Room, uuid, conn=conn) for uuid in uuids]
 
     async def resolve_games(self, info, uuids=None):
+        conn = info.context["request"].app.redis
         if not uuids:
-            uuids = await keys(Game, conn=info.context["request"].app.redis)
+            uuids = await keys(Game, conn=conn)
 
-        return [Game.resolve(self, info, uuid) for uuid in uuids]
+        return [await select(Game, uuid, conn=conn) for uuid in uuids]
 
     async def resolve_messages(self, info, room_uuid):
-        room = await select(Room, room_uuid, conn=info.context['request'].app.redis)
-        return [Message.resolve(self, info, uuid) for uuid in room.chat]
+        conn = info.context['request'].app.redis
+        room = await select(Room, room_uuid, conn=conn)
+        return [await select(Message, uuid, conn=conn) for uuid in room.chat]

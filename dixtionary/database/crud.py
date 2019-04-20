@@ -4,10 +4,11 @@ from .pubsub import publish
 
 async def select(entity_type, uuid, *, conn):
     data = await conn.hget(entity_type.__name__, uuid)
+
     if data is None:
-        return data
-    obj = json.loads(data)
-    return entity_type(**obj)
+        raise IndexError(f"No record found for {entity_type} {uuid}")
+
+    return entity_type(**json.loads(data))
 
 
 async def insert(entity, *, conn):

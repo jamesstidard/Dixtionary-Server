@@ -5,7 +5,7 @@ from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
 from dixtionary.database import select, update
-from dixtionary.model.query import Message, Room
+from dixtionary.model.query import Room
 from dixtionary.utils.string import underscore
 
 
@@ -49,6 +49,16 @@ class RoomUpdated(RoomSubscription):
 
 
 class RoomDeleted(RoomSubscription):
+    ...
+
+
+class GameSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    rounds = g.List(g.ID, required=True)
+    complete = g.Boolean(required=True)
+
+
+class GameUpdated(GameSubscription):
     ...
 
 
@@ -101,6 +111,11 @@ class Subscription(g.ObjectType):
         uuid=g.String(required=True),
         token=g.String(required=True),
     )
+    game_updated = g.Field(
+        GameUpdated,
+        description='The games industry doesn\'t stand still',
+        uuids=g.List(g.String, required=False),
+    )
     user_inserted = g.Field(
         UserInserted,
         description='New around these parts.',
@@ -131,8 +146,6 @@ class Subscription(g.ObjectType):
         return resolve(root, info, uuids=uuids)
 
     async def resolve_join_room(root, info, uuid, token):
-        logger.info(f"JOINED {uuid} {id(info.context['request'])}")
-
         serializer = Serializer(info.context["request"].app.config.SECRET)
 
         try:
@@ -148,6 +161,7 @@ class Subscription(g.ObjectType):
         if len(set(room.members)) > room.capacity:
             raise ValueError("Sorry, the room is full.")
 
+        logger.info(f"JOINED {user['name']} {room.name}")
         await update(room, conn=info.context["request"].app.redis)
 
         yield True
@@ -163,6 +177,9 @@ class Subscription(g.ObjectType):
             await update(room, conn=info.context["request"].app.redis)
             logger.info(f"LEFT {uuid} {id(info.context['request'])}")
             raise
+
+    def resolve_game_updated(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
 
     def resolve_user_inserted(root, info):
         return resolve(root, info)
