@@ -173,7 +173,7 @@ async def run(app, *, room_uuid):
             elif close_room:
                 await cancel_tasks(pending)
                 room = await select(Room, room_uuid, conn=app.redis)
-                messages = [select(Message, m, conn=app.redis) for m in room.messages]
+                messages = [select(Message, m, conn=app.redis) for m in room.chat]
 
                 for entity in [room, *messages]:
                     await delete(entity, conn=app.redis)
