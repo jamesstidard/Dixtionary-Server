@@ -123,11 +123,13 @@ async def host_game(app, *, room_uuid):
                 await countdown(app, seconds=60, turn_uuid=turn.uuid)
 
         # let the winners bask in their glory
+        logger.info(f"CEREMONY STARTED {room_uuid}")
         game = await select(Game, game.uuid, conn=app.redis)
         game.complete = True
         await update(game, conn=app.redis)
         await asyncio.sleep(10)
     finally:
+        logger.info(f"CLEANING UP GAME ROOM {room_uuid}")
         game = await select(Game, game.uuid, conn=app.redis)
         rounds = [await select(Round, r, conn=app.redis) for r in game.rounds]
         turns = [await select(Turn, t, conn=app.redis) for r in rounds for t in r.turns]
