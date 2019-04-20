@@ -143,10 +143,10 @@ async def members_change(app, *, room_uuid, last_known=None):
 
     async with app.subscribe('ROOM_UPDATED') as messages:
         async for data in messages:
-            if data['uuid'] != room_uuid:
+            room = Room(**data)
+            if room.uuid != room_uuid:
                 continue
 
-            room = Room(**data)
             if set(room.members) != set(last_known):
                 return room
 
@@ -156,9 +156,14 @@ async def member_leaves(app, *, room_uuid, member_uuid):
     if member_uuid not in room.members:
         return True
 
-    async for room in members_change(app, room_uuid=room_uuid):
-        if member_uuid not in room.members:
-            return True
+    async with app.subscribe('ROOM_UPDATED') as messages:
+        async for data in messages:
+            room = Room(**data)
+            if room.uuid != room_uuid:
+                continue
+
+            if member_uuid not in room.members:
+                return True
 
 
 async def run(app, *, room_uuid):
