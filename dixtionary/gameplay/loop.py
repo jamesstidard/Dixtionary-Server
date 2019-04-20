@@ -57,6 +57,7 @@ async def host_game(app, *, room_uuid):
 
         game = Game(
             uuid=uuid4().hex,
+            complete=False,
             rounds=[],
         )
         room.game = game
@@ -100,6 +101,11 @@ async def host_game(app, *, room_uuid):
 
     except asyncio.CancelledError:
         pass
+    else:
+        # let the winners bask in their glory
+        game = select(Game, game.uuid, conn=app.redis)
+        game.complete = True
+        await asyncio.sleep(10)
     finally:
         logger.warning("cleanup database and remove game from room")
 

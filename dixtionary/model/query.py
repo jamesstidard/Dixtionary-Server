@@ -70,6 +70,7 @@ class Round(RedisObjectType):
 
 class Game(RedisObjectType):
     rounds = g.List(Round)
+    complete = g.Boolean(required=True)
 
     async def resolve_rounds(self, info):
         return [Round.resolve(self, info, uuid) for uuid in self.rounds]
