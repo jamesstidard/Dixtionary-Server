@@ -57,6 +57,20 @@ class Turn(RedisObjectType):
     remaining = Seconds(required=False)
     artwork = g.JSONString(required=False)
 
+    def resolve_choice(self, info):
+        user = info.context["current_user"]
+        if user and user.uuid == self.artist:
+            return self.choice
+        else:
+            return None
+
+    def resolve_choices(self, info):
+        user = info.context["current_user"]
+        if user and user.uuid == self.artist:
+            return self.choices
+        else:
+            return []
+
     async def resolve_artist(self, info):
         return await User.resolve(self, info, self.artist)
 
