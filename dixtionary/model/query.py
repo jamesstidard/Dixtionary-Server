@@ -141,6 +141,11 @@ class Query(g.ObjectType):
         description='Game rooms',
         uuids=g.List(g.String, required=False),
     )
+    games = g.List(
+        Game,
+        description='What do you do in a room. Play a game',
+        uuids=g.List(g.String, required=False),
+    )
     messages = g.List(
         Message,
         description='Chit-chat',
@@ -161,6 +166,12 @@ class Query(g.ObjectType):
             uuids = await keys(Room, conn=info.context["request"].app.redis)
 
         return [Room.resolve(self, info, uuid) for uuid in uuids]
+
+    async def resolve_games(self, info, uuids=None):
+        if not uuids:
+            uuids = await keys(Game, conn=info.context["request"].app.redis)
+
+        return [Game.resolve(self, info, uuid) for uuid in uuids]
 
     async def resolve_messages(self, info, room_uuid):
         room = await select(Room, room_uuid, conn=info.context['request'].app.redis)
