@@ -110,13 +110,16 @@ async def host_game(app, *, room_uuid):
                     member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
                 )
 
+                logger.info(f"WAITING FOR CHOICE {turn.artist} {room_uuid}")
                 done, pending = await first_completed({choice, timeout, artist_leaves})
                 await cancel_tasks(pending)
 
                 if done in {timeout, artist_leaves}:
+                    logger.info(f"SKIPPING TURN {turn.artist} {room_uuid}")
                     continue
 
                 # start turn timer
+                logger.info(f"GUESSING STARTED {turn.artist} {room_uuid}")
                 await countdown(app, seconds=60, turn_uuid=turn.uuid)
 
         # let the winners bask in their glory

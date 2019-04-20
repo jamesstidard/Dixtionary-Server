@@ -16,4 +16,4 @@ async def cancel_tasks(tasks):
 
 async def first_completed(tasks):
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    return done[0], pending
+    return list(done)[0], pending
