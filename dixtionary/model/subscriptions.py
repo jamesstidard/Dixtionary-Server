@@ -69,6 +69,18 @@ class UserDeleted(UserSubscription):
     ...
 
 
+class MessageSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    time = g.DateTime(required=True)
+    body = g.String(required=True)
+    author = g.ID(required=True)
+    room = g.ID(required=True)
+
+
+class MessageInserted(MessageSubscription):
+    ...
+
+
 class Subscription(g.ObjectType):
     room_inserted = g.Field(
         RoomInserted,
@@ -104,7 +116,7 @@ class Subscription(g.ObjectType):
         uuids=g.List(g.String, required=False),
     )
     message_inserted = g.Field(
-        Message,
+        MessageInserted,
         description='What did you say?',
         room_uuid=g.String(required=False),
     )
