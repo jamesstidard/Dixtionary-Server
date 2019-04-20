@@ -3,6 +3,7 @@ from datetime import datetime
 
 import graphene as g
 
+from loguru import logger
 from itsdangerous import Serializer
 
 from .query import User, Room, Message, Turn
@@ -118,6 +119,7 @@ class InsertMessage(RedisInsertMutation):
 
     async def mutate(self, info, room_uuid, body):
         redis = info.context["request"].app.redis
+        logger.warning("TODO: check message is correct guess")
         room = await select(Room, room_uuid, conn=redis)
         msg = Message(
             uuid=uuid4().hex,
