@@ -102,6 +102,7 @@ async def host_game(app, *, room_uuid):
         # let the winners bask in their glory
         game = await select(Game, game.uuid, conn=app.redis)
         game.complete = True
+        await update(game, conn=app.redis)
         await asyncio.sleep(10)
     finally:
         game = await select(Game, game.uuid, conn=app.redis)
