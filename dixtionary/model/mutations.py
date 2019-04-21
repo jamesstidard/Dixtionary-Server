@@ -80,7 +80,7 @@ class InsertRoom(RedisInsertMutation):
 
 class UpdateRoom(RedisUpdateMutation):
     class Arguments:
-        uuid = g.ID(required=True)
+        uuid = g.String(required=True)
         name = g.String(required=False)
         password = g.String(required=False)
         capacity = g.Int(required=False)
@@ -136,7 +136,7 @@ class InsertMessage(RedisInsertMutation):
 
 class UpdateTurn(RedisUpdateMutation):
     class Arguments:
-        uuid = g.ID(required=True)
+        uuid = g.String(required=True)
         choice = g.String(required=False)
         artwork = g.JSONString(required=False)
 
