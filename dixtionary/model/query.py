@@ -1,3 +1,5 @@
+from collections import Counter
+
 import graphene as g
 from graphene.types import Scalar
 from graphql.language import ast
@@ -8,7 +10,6 @@ from dixtionary.database import select, keys
 
 
 class Seconds(Scalar):
-
     @staticmethod
     def serialize(value):
         return value
@@ -207,6 +208,11 @@ class Query(g.ObjectType):
         description='Chit-chat',
         room_uuid=g.String(required=True),
     )
+    scores = g.List(
+        Score,
+        description='Everything\'s a compition',
+        game_uuid=g.String(required=True),
+    )
 
     def resolve_me(self, info):
         return info.context["current_user"]
@@ -251,3 +257,12 @@ class Query(g.ObjectType):
         conn = info.context['request'].app.redis
         room = await select(Room, room_uuid, conn=conn)
         return [await select(Message, uuid, conn=conn) for uuid in room.chat]
+
+    async def resolve_scores(self, info, game_uuid):
+        with await info.context['request'].app.redis as conn:
+            game = await select(Game, game_uuid, conn=conn)
+            rounds = [await select(Round, r, conn=conn) for r in game.rounds]
+            turns = [await select(Turn, t, conn=conn) for r in rounds for t in r.turns]
+            scores = [await select(Score, s, conn=conn) for t in turns for s in t.scores]
+
+        return scores

@@ -5,7 +5,7 @@ from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
 from dixtionary.database import select, update
-from dixtionary.model.query import Room, Seconds
+from dixtionary.model.query import Room, Game, Seconds, Round, Turn
 from dixtionary.utils.string import underscore
 
 
@@ -127,6 +127,16 @@ class MessageInserted(MessageSubscription):
     ...
 
 
+class ScoreSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    user = g.ID(required=True)
+    value = g.Int(required=True)
+
+
+class ScoreInserted(ScoreSubscription):
+    ...
+
+
 class Subscription(g.ObjectType):
     room_inserted = g.Field(
         RoomInserted,
@@ -197,6 +207,11 @@ class Subscription(g.ObjectType):
         description='What did you say?',
         room_uuid=g.String(required=False),
         token=g.String(required=False),
+    )
+    score_inserted = g.Field(
+        ScoreInserted,
+        description='Points mean prizes',
+        game_uuid=g.String(required=True),
     )
 
     def resolve_room_inserted(root, info):
@@ -300,3 +315,14 @@ class Subscription(g.ObjectType):
                 if not user or (message.correctGuess and message.author != user['uuid']):
                     message.body = '*******'
                 yield message
+
+    async def resolve_score_inserted(root, info, game_uuid):
+        conn = info.context['request'].app.redis
+        async for score in resolve(root, info):
+            game = await select(Game, game_uuid, conn=conn)
+            rounds = [await select(Round, r, conn=conn) for r in game.rounds]
+            turns = [await select(Turn, t, conn=conn) for r in rounds for t in r.turns]
+            scores = set(s for t in turns for s in t.scores)
+
+            if score.uuid in scores:
+                yield score
