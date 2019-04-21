@@ -3,10 +3,10 @@ from datetime import datetime
 
 import graphene as g
 
-from loguru import logger
+from fuzzywuzzy import fuzz
 from itsdangerous import Serializer
 
-from .query import User, Room, Message, Turn
+from .query import User, Room, Message, Turn, Score, Game, Round
 from dixtionary.database import select, insert, update, delete
 from dixtionary import gameplay
 from dixtionary.utils.string import str_list
@@ -110,6 +110,16 @@ class DeleteRoom(RedisDeleteMutation):
         return await RedisDeleteMutation.mutate(self, info, uuid)
 
 
+async def current_turn(room_uuid, *, conn):
+    room = await select(Room, room_uuid, conn=conn)
+    if room.game:
+        game = await select(Game, room.game, conn=conn)
+        if game.rounds:
+            round_ = await select(Round, game.rounds[-1], conn=conn)
+            if round_.turns:
+                return await select(Turn, round_.turns[-1], conn=conn)
+
+
 class InsertMessage(RedisInsertMutation):
     class Arguments:
         room_uuid = g.String(required=True)
@@ -119,15 +129,45 @@ class InsertMessage(RedisInsertMutation):
 
     async def mutate(self, info, room_uuid, body):
         redis = info.context["request"].app.redis
-        logger.warning("TODO: check message is correct guess")
+        user = info.context["current_user"]
+
+        correct = False
+        turn = await current_turn(room_uuid=room_uuid, conn=redis)
+        correct = (
+            turn and
+            turn.choice and
+            fuzz.ratio(turn.choice.lower(), body.lower()) >= 95
+        )
+
+        if correct and turn.artist == user.uuid:
+            raise ValueError("Don't give way the answer")
+
+        if correct:
+            user_score = Score(
+                uuid=uuid4().hex,
+                user=user,
+                value=1,
+            )
+            artist_score = Score(
+                uuid=uuid4().hex,
+                user=turn.artist,
+                value=1
+            )
+            turn.scores += [user_score, artist_score]
+            await insert(user_score, conn=redis)
+            await insert(artist_score, conn=redis)
+            await update(turn, conn=redis)
+
         room = await select(Room, room_uuid, conn=redis)
         msg = Message(
             uuid=uuid4().hex,
             body=body,
             time=datetime.utcnow(),
-            author=info.context["current_user"],
+            author=user,
             room=room,
+            correctGuess=correct
         )
+
         room.chat.append(msg)
         await insert(msg, conn=redis)
         await update(room, conn=redis)

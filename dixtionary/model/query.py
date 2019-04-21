@@ -118,10 +118,18 @@ class Message(g.ObjectType):
     body = g.String(required=True)
     author = g.Field(User, required=True)
     room = g.Field('dixtionary.model.query.Room', required=True)
+    correctGuess = g.Boolean(required=True)
 
     async def resolve(self, info):
         conn = info.context["request"].app.redis
         return await select(Message, self.uuid, conn=conn)
+
+    async def resolve_body(self, info):
+        user = info.context["current_user"]
+        if self.correctGuess and self.author != user.uuid:
+            return '*******'
+        else:
+            return self.body
 
     async def resolve_author(self, info):
         conn = info.context["request"].app.redis

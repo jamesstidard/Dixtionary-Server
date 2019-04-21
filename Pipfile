@@ -25,6 +25,7 @@ graphql-ws = "*"
 rx = "<3.0"
 sanic-graphql = "*"
 loguru = "*"
+fuzzywuzzy = {extras = ["speedup"],version = "*"}
 
 [requires]
 python_version = "3.7"

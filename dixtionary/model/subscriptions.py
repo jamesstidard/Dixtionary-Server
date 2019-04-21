@@ -116,6 +116,7 @@ class MessageSubscription(g.ObjectType):
     body = g.String(required=True)
     author = g.ID(required=True)
     room = g.ID(required=True)
+    correctGuess = g.Boolean(required=True)
 
 
 class MessageInserted(MessageSubscription):
@@ -186,6 +187,7 @@ class Subscription(g.ObjectType):
         MessageInserted,
         description='What did you say?',
         room_uuid=g.String(required=False),
+        token=g.String(required=False),
     )
 
     def resolve_room_inserted(root, info):
@@ -269,7 +271,20 @@ class Subscription(g.ObjectType):
     def resolve_user_deleted(root, info, uuids=None):
         return resolve(root, info, uuids=uuids)
 
-    async def resolve_message_inserted(root, info, room_uuid):
+    async def resolve_message_inserted(root, info, room_uuid, token=None):
+        # TODO: fix ws authorize and clean up
+        if token:
+            serializer = Serializer(info.context["request"].app.config.SECRET)
+            try:
+                user = serializer.loads(token)
+            except BadSignature:
+                msg = "Looks like you've been tampering with you token. Get out."
+                raise ValueError(msg)
+        else:
+            user = None
+
         async for message in resolve(root, info):
             if message.room == room_uuid:
+                if not user or (message.correctGuess and message.author != user['uuid']):
+                    message.body = '*******'
                 yield message
