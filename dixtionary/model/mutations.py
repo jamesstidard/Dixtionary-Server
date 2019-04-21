@@ -134,6 +134,9 @@ class InsertMessage(RedisInsertMutation):
         return msg
 
 
+UNTOUCHED = object()
+
+
 class UpdateTurn(RedisUpdateMutation):
     class Arguments:
         uuid = g.String(required=True)
@@ -142,44 +145,46 @@ class UpdateTurn(RedisUpdateMutation):
 
     Output = Turn
 
-    async def mutate_choice(self, info, uuid, choice):
+    async def mutate(self, info, uuid, choice=UNTOUCHED, artwork=UNTOUCHED):
         turn = await select(Turn, uuid, conn=info.context["request"].app.redis)
         user = info.context["current_user"]
 
-        if turn.artist != user.uuid:
-            raise ValueError("Not your turn to choose.")
+        if choice is not UNTOUCHED:
+            if turn.artist != user.uuid:
+                raise ValueError("Not your turn to choose.")
 
-        if choice not in turn.choices:
-            raise ValueError(
-                f"Not a valid choice. You must choose between {str_list(turn.choice)}."
-            )
+            if choice not in turn.choices:
+                raise ValueError(
+                    f"Not a valid choice. You must choose between {str_list(turn.choices)}."
+                )
 
-        if turn.choice:
-            raise ValueError(
-                f"You've already chosen {turn.choice}; "
-                "You'll have to learn to live with it."
-            )
+            if turn.choice:
+                raise ValueError(
+                    f"You've already chosen {turn.choice}; "
+                    "You'll have to learn to live with it."
+                )
+        else:
+            choice = turn.choice
 
-        return await RedisUpdateMutation.mutate(self, info, uuid, choice=choice)
+        if artwork is not UNTOUCHED:
+            if turn.artist != user.uuid:
+                raise ValueError("Not your turn to draw.")
 
-    async def mutate_artwork(self, info, uuid, artwork):
-        turn = await select(Turn, uuid, conn=info.context["request"].app.redis)
-        user = info.context["current_user"]
+            if not turn.choice:
+                raise ValueError(
+                    f"Need to choose something to draw first."
+                )
 
-        if turn.artist != user.uuid:
-            raise ValueError("Not your turn to draw.")
+            if not turn.remaining:
+                raise ValueError(
+                    "The clocks not running. Would be cheating to draw now."
+                )
+        else:
+            artwork = turn.artwork
 
-        if not turn.choice:
-            raise ValueError(
-                f"Need to choose something to draw first."
-            )
-
-        if not turn.duration:
-            raise ValueError(
-                "The clocks not running. Would be cheating to draw now."
-            )
-
-        return await RedisUpdateMutation.mutate(self, info, uuid, artwork=artwork)
+        return await RedisUpdateMutation.mutate(
+            self, info, uuid, choice=choice, artwork=artwork
+        )
 
 
 class Mutation(g.ObjectType):
