@@ -62,6 +62,10 @@ class GameUpdated(GameSubscription):
     ...
 
 
+class GameDeleted(GameSubscription):
+    ...
+
+
 class RoundSubscription(g.ObjectType):
     uuid = g.ID(required=True)
     turns = g.List(g.ID, required=True)
@@ -146,6 +150,11 @@ class Subscription(g.ObjectType):
     game_updated = g.Field(
         GameUpdated,
         description='The games industry doesn\'t stand still',
+        uuids=g.List(g.String, required=False),
+    )
+    game_deleted = g.Field(
+        GameDeleted,
+        description='GG WP',
         uuids=g.List(g.String, required=False),
     )
     round_updated = g.Field(
@@ -234,6 +243,9 @@ class Subscription(g.ObjectType):
             raise
 
     def resolve_game_updated(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
+
+    def resolve_game_deleted(root, info, uuids=None):
         return resolve(root, info, uuids=uuids)
 
     def resolve_round_updated(root, info, uuids=None):
