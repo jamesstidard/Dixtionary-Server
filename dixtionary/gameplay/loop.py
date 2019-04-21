@@ -4,6 +4,7 @@ import asyncio
 from uuid import uuid4
 
 from loguru import logger
+from aiostream.stream import ziplatest
 
 from dixtionary.model.query import Room, Game, Round, Turn, Score, Message
 from dixtionary.database import select, insert, update, delete
@@ -66,6 +67,56 @@ async def cycle_turns(app, *, room_uuid, round_uuid):
         )
 
 
+async def turn_scores_change(app, *, turn_uuid):
+    turn = await select(Turn, turn_uuid, conn=app.redis)
+    seen_scores = set(turn.scores)
+
+    async with app.subscribe('TURN_UPDATED') as messages:
+        async for data in messages:
+            turn = Turn(**data)
+            changed = seen_scores != set(turn.scores)
+            seen_scores = set(turn.scores)
+
+            if changed:
+                yield turn
+
+
+async def room_members_change(app, *, room_uuid):
+    room = await select(Room, room_uuid, conn=app.redis)
+    seen_members = set(room.members)
+
+    async with app.subscribe('ROOM_UPDATED') as messages:
+        async for data in messages:
+            turn = Room(**data)
+            changed = seen_members != set(room.members)
+            seen_members = set(room.members)
+
+            if changed:
+                yield turn
+
+
+async def all_guessed(app, *, room_uuid, turn_uuid):
+    async for room, turn in ziplatest(
+        room_members_change(app=app, room_uuid=room_uuid),
+        turn_scores_change(app=app, turn_uuid=turn_uuid),
+    ):
+        if room is None:
+            room = await select(Room, room_uuid, conn=app.redis)
+
+        if turn is None:
+            turn = await select(Turn, turn_uuid, conn=app.redis)
+
+        scores = [await select(Score, s, conn=app.redis) for s in turn.scores]
+
+        current_members = set(room.members)
+        scoring_members = set(s.user for s in scores)
+        remaining = current_members - scoring_members - {turn.artist}
+        all_guessed = len(remaining) == 0
+
+        if all_guessed:
+            return True
+
+
 async def host_game(app, *, room_uuid):
     try:
         room = await select(Room, room_uuid, conn=app.redis)
@@ -122,7 +173,17 @@ async def host_game(app, *, room_uuid):
 
                 # start turn timer
                 logger.info(f"GUESSING STARTED {turn.artist} {room_uuid}")
-                await countdown(app, seconds=60, turn_uuid=turn.uuid)
+                timeout = asyncio.create_task(
+                    countdown(app, seconds=60, turn_uuid=turn.uuid)
+                )
+                guessed = asyncio.create_task(
+                    all_guessed(app, room_uuid=room_uuid, turn_uuid=turn.uuid)
+                )
+                artist_leaves = asyncio.create_task(
+                    member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
+                )
+                done, pending = await first_completed({guessed, timeout, artist_leaves})
+                await cancel_tasks(pending)
 
         # let the winners bask in their glory
         logger.info(f"CEREMONY STARTED {room_uuid}")
