@@ -5,7 +5,7 @@ from itsdangerous import BadSignature, Serializer
 from loguru import logger
 
 from dixtionary.database import select, update
-from dixtionary.model.query import Room
+from dixtionary.model.query import Room, Seconds
 from dixtionary.utils.string import underscore
 
 
@@ -59,6 +59,37 @@ class GameSubscription(g.ObjectType):
 
 
 class GameUpdated(GameSubscription):
+    ...
+
+
+class RoundSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    turns = g.List(g.ID, required=True)
+
+
+class RoundUpdated(RoundSubscription):
+    ...
+
+
+class RoundDeleted(RoundSubscription):
+    ...
+
+
+class TurnSubscription(g.ObjectType):
+    uuid = g.ID(required=True)
+    choices = g.List(g.String, required=True)
+    choice = g.String(required=False)
+    artist = g.Field(g.ID, required=True)
+    scores = g.List(g.ID)
+    remaining = Seconds(required=False)
+    artwork = g.JSONString(required=False)
+
+
+class TurnUpdated(TurnSubscription):
+    ...
+
+
+class TurnDeleted(TurnSubscription):
     ...
 
 
@@ -116,6 +147,27 @@ class Subscription(g.ObjectType):
         description='The games industry doesn\'t stand still',
         uuids=g.List(g.String, required=False),
     )
+    round_updated = g.Field(
+        RoundUpdated,
+        description='I\'m low on quips',
+        uuids=g.List(g.String, required=False),
+    )
+    round_deleted = g.Field(
+        RoundDeleted,
+        description='Round and round we go',
+        uuids=g.List(g.String, required=False),
+    )
+    turn_updated = g.Field(
+        TurnUpdated,
+        description='Upturned',
+        token=g.String(required=True),
+        uuids=g.List(g.String, required=False),
+    )
+    turn_deleted = g.Field(
+        TurnDeleted,
+        description='ok, ok, wrap it up',
+        uuids=g.List(g.String, required=False),
+    )
     user_inserted = g.Field(
         UserInserted,
         description='New around these parts.',
@@ -146,6 +198,7 @@ class Subscription(g.ObjectType):
         return resolve(root, info, uuids=uuids)
 
     async def resolve_join_room(root, info, uuid, token):
+        # TODO: fix ws authorize
         serializer = Serializer(info.context["request"].app.config.SECRET)
 
         try:
@@ -179,6 +232,32 @@ class Subscription(g.ObjectType):
             raise
 
     def resolve_game_updated(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
+
+    def resolve_round_updated(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
+
+    def resolve_round_deleted(root, info, uuids=None):
+        return resolve(root, info, uuids=uuids)
+
+    async def resolve_turn_updated(root, info, token, uuids=None):
+        # TODO: fix ws authorize
+        serializer = Serializer(info.context["request"].app.config.SECRET)
+
+        try:
+            user = serializer.loads(token)
+        except BadSignature:
+            msg = "Looks like you've been tampering with you token. Get out."
+            raise ValueError(msg)
+
+        async for turn in resolve(root, info, uuids=uuids):
+            if turn.artist != user['uuid']:
+                turn.choices = []
+                turn.choice = None
+
+            yield turn
+
+    def resolve_turn_deleted(root, info, uuids=None):
         return resolve(root, info, uuids=uuids)
 
     def resolve_user_inserted(root, info):

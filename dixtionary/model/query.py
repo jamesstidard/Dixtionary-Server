@@ -2,6 +2,8 @@ import graphene as g
 from graphene.types import Scalar
 from graphql.language import ast
 
+from loguru import logger
+
 from dixtionary.database import select, keys
 
 
@@ -54,8 +56,11 @@ class Turn(g.ObjectType):
     artwork = g.JSONString(required=False)
 
     async def resolve(self, info):
+        logger.warning(self.uuid)
         conn = info.context["request"].app.redis
-        return await select(Turn, self.uuid, conn=conn)
+        turn = await select(Turn, self.uuid, conn=conn)
+        logger.warning(turn)
+        return turn
 
     def resolve_choice(self, info):
         user = info.context["current_user"]
@@ -179,6 +184,16 @@ class Query(g.ObjectType):
         description='What do you do in a room. Play a game',
         uuids=g.List(g.String, required=False),
     )
+    rounds = g.List(
+        Round,
+        description='ding ding ding',
+        uuids=g.List(g.String, required=False),
+    )
+    turns = g.List(
+        Turn,
+        description='after you',
+        uuids=g.List(g.String, required=False),
+    )
     messages = g.List(
         Message,
         description='Chit-chat',
@@ -190,24 +205,39 @@ class Query(g.ObjectType):
 
     async def resolve_users(self, info, uuids=None):
         conn = info.context["request"].app.redis
-        if not uuids:
+        if uuids is None:
             uuids = await keys(User, conn=conn)
 
         return [await select(User, uuid, conn=conn) for uuid in uuids]
 
     async def resolve_rooms(self, info, uuids=None):
         conn = info.context["request"].app.redis
-        if not uuids:
+        if uuids is None:
             uuids = await keys(Room, conn=conn)
 
         return [await select(Room, uuid, conn=conn) for uuid in uuids]
 
     async def resolve_games(self, info, uuids=None):
         conn = info.context["request"].app.redis
-        if not uuids:
+        if uuids is None:
             uuids = await keys(Game, conn=conn)
 
         return [await select(Game, uuid, conn=conn) for uuid in uuids]
+
+    async def resolve_rounds(self, info, uuids=None):
+        conn = info.context["request"].app.redis
+        if uuids is None:
+            uuids = await keys(Round, conn=conn)
+
+        return [await select(Round, uuid, conn=conn) for uuid in uuids]
+
+    async def resolve_turns(self, info, uuids=None):
+        conn = info.context["request"].app.redis
+        if uuids is None:
+            uuids = await keys(Turn, conn=conn)
+
+        turns = [await select(Turn, uuid, conn=conn) for uuid in uuids]
+        return turns
 
     async def resolve_messages(self, info, room_uuid):
         conn = info.context['request'].app.redis

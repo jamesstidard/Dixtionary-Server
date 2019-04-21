@@ -59,7 +59,7 @@ async def cycle_turns(app, *, room_uuid, round_uuid):
 
         yield Turn(
             uuid=uuid4().hex,
-            choices=random.choices(DICTIONARY, k=3),
+            choices=random.sample(DICTIONARY, k=3),
             choice=None,
             artist=next_artist,
             scores=[],
@@ -79,7 +79,6 @@ async def host_game(app, *, room_uuid):
 
         logger.info(f"CREATING GAME {game.uuid}")
         await insert(game, conn=app.redis)
-        await asyncio.sleep(1)
         await update(room, conn=app.redis)
 
         for round_number in range(1, 9):
@@ -89,9 +88,9 @@ async def host_game(app, *, room_uuid):
                 turns=[],
             )
 
+            await insert(round_, conn=app.redis)
             game = await select(Game, game.uuid, conn=app.redis)
             game.rounds.append(round_)
-            await insert(round_, conn=app.redis)
             await update(game, conn=app.redis)
 
             turns = cycle_turns(app, room_uuid=room.uuid, round_uuid=round_.uuid)
