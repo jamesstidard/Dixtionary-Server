@@ -18,6 +18,7 @@ from dixtionary.database import insert, exists
 
 
 async def authorize(next, root, info, **args):
+    info.context["current_user"] = None
     is_query = info.operation.operation == 'query'
     is_subscription = info.operation.operation == 'subscription'
     read_only = (
