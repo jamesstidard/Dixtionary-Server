@@ -12,7 +12,7 @@ async def create_app(config):
     CORS(app, automatic_options=True)
     schema = make_schema()
     GraphQL(app, schema=schema)
-    Redis(app, address=app.config.DATABASE_URL)
+    Redis(app, address=app.config.REDIS_URL)
 
     # Favicon
     # app.static('/favicon.ico', 'favicon.ico')
