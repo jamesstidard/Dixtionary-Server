@@ -164,8 +164,11 @@ async def host_game(app, *, room_uuid):
                 )
 
                 logger.info(f"WAITING FOR CHOICE {turn.artist} {room_uuid}")
-                done, pending = await first_completed({choice, timeout, artist_leaves})
-                await cancel_tasks(pending)
+                pending = {choice, timeout, artist_leaves}
+                try:
+                    done, pending = await first_completed(pending)
+                finally:
+                    await cancel_tasks(pending)
 
                 if done in {timeout, artist_leaves}:
                     logger.info(f"SKIPPING TURN {turn.artist} {room_uuid}")
@@ -182,8 +185,11 @@ async def host_game(app, *, room_uuid):
                 artist_leaves = asyncio.create_task(
                     member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
                 )
-                done, pending = await first_completed({guessed, timeout, artist_leaves})
-                await cancel_tasks(pending)
+                pending = {guessed, timeout, artist_leaves}
+                try:
+                    done, pending = await first_completed(pending)
+                finally:
+                    await cancel_tasks(pending)
 
         # let the winners bask in their glory
         logger.info(f"CEREMONY STARTED {room_uuid}")
