@@ -7,3 +7,11 @@ http://localhost:8000/graphql?query=mutation%20myFirstMutation{login(name:%22bil
 
 ## me and rooms
 http://localhost:8000/graphql?query={me{uuid,name},rooms{name,capacity}}
+
+
+## Heroku Setup
+```sh
+$ heroku create com-shitbeards-dixtionary-api --region eu --manifest
+$ heroku domains:add api.dixtionary.shitbeards.com
+$ git push heroku master 
+```
