@@ -1,7 +1,5 @@
 import asyncio
 
-from loguru import logger
-
 from aiostream import streamcontext
 from aiostream.aiter_utils import anext
 from aiostream.core import Stream, Streamer
