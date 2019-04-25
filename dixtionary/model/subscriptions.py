@@ -18,15 +18,14 @@ async def resolve(root, info, uuids=None):
     app = info.context["request"].app
 
     logger.info(f"SUBSCRIBED {channel} {id(info.context['request'])}")
-    async with app.subscribe(channel)as messages:
-        async for data in messages:
-            logger.info(f"{channel} {id(info.context['request'])} {data}")
-            obj = cls(**data)
+    async for data in app.subscribe(channel):
+        logger.info(f"{channel} {id(info.context['request'])} {data}")
+        obj = cls(**data)
 
-            if uuids and obj.uuid in uuids:
-                yield obj
-            elif not uuids:
-                yield obj
+        if uuids and obj.uuid in uuids:
+            yield obj
+        elif not uuids:
+            yield obj
 
 
 class RoomSubscription(g.ObjectType):

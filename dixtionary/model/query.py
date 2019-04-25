@@ -1,5 +1,3 @@
-from collections import Counter
-
 import graphene as g
 from graphene.types import Scalar
 from graphql.language import ast

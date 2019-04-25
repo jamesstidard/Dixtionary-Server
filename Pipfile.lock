@@ -302,19 +302,16 @@
         },
         "uvloop": {
             "hashes": [
-                "sha256:0fcd894f6fc3226a962ee7ad895c4f52e3f5c3c55098e21efb17c071849a0573",
-                "sha256:2f31de1742c059c96cb76b91c5275b22b22b965c886ee1fced093fa27dde9e64",
-                "sha256:459e4649fcd5ff719523de33964aa284898e55df62761e7773d088823ccbd3e0",
-                "sha256:67867aafd6e0bc2c30a079603a85d83b94f23c5593b3cc08ec7e58ac18bf48e5",
-                "sha256:8c200457e6847f28d8bb91c5e5039d301716f5f2fce25646f5fb3fd65eda4a26",
-                "sha256:958906b9ca39eb158414fbb7d6b8ef1b7aee4db5c8e8e5d00fcbb69a1ce9dca7",
-                "sha256:ac1dca3d8f3ef52806059e81042ee397ac939e5a86c8a3cea55d6b087db66115",
-                "sha256:b284c22d8938866318e3b9d178142b8be316c52d16fcfe1560685a686718a021",
-                "sha256:c48692bf4587ce281d641087658eca275a5ad3b63c78297bbded96570ae9ce8f",
-                "sha256:fefc3b2b947c99737c348887db2c32e539160dcbeb7af9aa6b53db7a283538fe"
+                "sha256:3674b1b2a3c91df385a335e41e31048a466574883b6a0a3ac1496509e8a0acd8",
+                "sha256:52a227559e2284982e5f10b62f0498a191924ab53e27fdba6b243459b43ffae5",
+                "sha256:6104f8078c3a68163d3cfc8fadc7881b2e58a9c3a45e09b9487b45bd8678510c",
+                "sha256:681d2ab0c266498e7fc36df3e07001602cd4526ca2158c7a4532cf9eddaef583",
+                "sha256:8108769060e20760503be305c805ab435aa404822475f64b064d1e1df9061e74",
+                "sha256:99904cc445d510295094be6dbb8d1cbad6bc729f58643bf568fd617214afd504",
+                "sha256:ec4ecf0d2803dc3fa58d3efc05de5d50ab9a39b5203d9bca4f059ec3be22de87"
             ],
             "markers": "sys_platform != 'win32' and implementation_name == 'cpython'",
-            "version": "==0.12.2"
+            "version": "==0.13.0rc1"
         },
         "websockets": {
             "hashes": [

@@ -69,7 +69,7 @@ class InsertRoom(RedisInsertMutation):
             self,
             info,
             **kwargs,
-            owner=info.context["current_user"],
+            owner=info.context["current_user"].uuid,
             members=[],
             chat=[],
         )

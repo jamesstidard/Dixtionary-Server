@@ -15,7 +15,7 @@ def _default(obj):
 
 
 def dumps(entity: graphene.ObjectType):
-    return _json.dumps(vars(entity), default=_default)
+    return _json.dumps(entity, default=_default)
 
 
 def _hook(obj):

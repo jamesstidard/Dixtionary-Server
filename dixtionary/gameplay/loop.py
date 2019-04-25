@@ -36,12 +36,11 @@ async def artist_choice(app, *, turn_uuid):
     if turn.choice:
         return turn.choice
 
-    async with app.subscribe('TURN_UPDATED') as messages:
-        async for data in messages:
-            turn = Turn(**data)
+    async for data in app.subscribe('TURN_UPDATED'):
+        turn = Turn(**data)
 
-            if turn.uuid == turn_uuid and turn.choice:
-                return turn.choice
+        if turn.uuid == turn_uuid and turn.choice:
+            return turn.choice
 
 
 async def cycle_turns(app, *, room_uuid, round_uuid):
@@ -71,28 +70,26 @@ async def turn_scores_change(app, *, turn_uuid):
     turn = await select(Turn, turn_uuid, conn=app.redis)
     seen_scores = set(turn.scores)
 
-    async with app.subscribe('TURN_UPDATED') as messages:
-        async for data in messages:
-            turn = Turn(**data)
-            changed = seen_scores != set(turn.scores)
-            seen_scores = set(turn.scores)
+    async for data in app.subscribe('TURN_UPDATED'):
+        turn = Turn(**data)
+        changed = seen_scores != set(turn.scores)
+        seen_scores = set(turn.scores)
 
-            if changed:
-                yield turn
+        if changed:
+            yield turn
 
 
 async def room_members_change(app, *, room_uuid):
     room = await select(Room, room_uuid, conn=app.redis)
     seen_members = set(room.members)
 
-    async with app.subscribe('ROOM_UPDATED') as messages:
-        async for data in messages:
-            turn = Room(**data)
-            changed = seen_members != set(room.members)
-            seen_members = set(room.members)
+    async for data in app.subscribe('ROOM_UPDATED'):
+        turn = Room(**data)
+        changed = seen_members != set(room.members)
+        seen_members = set(room.members)
 
-            if changed:
-                yield turn
+        if changed:
+            yield turn
 
 
 async def all_guessed(app, *, room_uuid, turn_uuid):
@@ -216,14 +213,13 @@ async def members_change(app, *, room_uuid, last_known=None):
     if last_known is None:
         last_known = {object()}
 
-    async with app.subscribe('ROOM_UPDATED') as messages:
-        async for data in messages:
-            room = Room(**data)
-            if room.uuid != room_uuid:
-                continue
+    async for data in app.subscribe('ROOM_UPDATED'):
+        room = Room(**data)
+        if room.uuid != room_uuid:
+            continue
 
-            if set(room.members) != set(last_known):
-                return room
+        if set(room.members) != set(last_known):
+            return room
 
 
 async def member_leaves(app, *, room_uuid, member_uuid):
@@ -231,14 +227,13 @@ async def member_leaves(app, *, room_uuid, member_uuid):
     if member_uuid not in room.members:
         return True
 
-    async with app.subscribe('ROOM_UPDATED') as messages:
-        async for data in messages:
-            room = Room(**data)
-            if room.uuid != room_uuid:
-                continue
+    async for data in app.subscribe('ROOM_UPDATED'):
+        room = Room(**data)
+        if room.uuid != room_uuid:
+            continue
 
-            if member_uuid not in room.members:
-                return True
+        if member_uuid not in room.members:
+            return True
 
 
 async def run(app, *, room_uuid):

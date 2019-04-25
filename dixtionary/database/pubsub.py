@@ -1,26 +1,35 @@
-from contextlib import asynccontextmanager
+import asyncio
 
 import aioredis
+
+from loguru import logger
 
 from dixtionary.utils import json
 
 
-async def messages(channel):
-    while await channel.wait_message():
-        data = await channel.get()
-        yield json.loads(data)
-
-
-@asynccontextmanager
-async def subscribe(channel, **kwargs):
+async def broadcaster(**kwargs):
     redis = await aioredis.create_redis(**kwargs)
-    channel, = await redis.subscribe(channel.upper())
+    channel, *_ = await redis.subscribe("BROADCASTS")
+
     try:
-        yield messages(channel)
+        while await channel.wait_message():
+            data = await channel.get()
+            message = json.loads(data)
+            name = message['name']
+            data = json.loads(message['data'])
+            yield name, data
     finally:
         redis.close()
         await redis.wait_closed()
 
 
+async def subscribe(channel, broadcaster):
+    normal = channel.upper()
+    async for name, data in broadcaster:
+        if name == normal:
+            yield data
+
+
 async def publish(channel, data, *, conn):
-    await conn.publish(channel.upper(), data)
+    message = dict(name=channel.upper(), data=data)
+    await conn.publish("BROADCASTS", json.dumps(message))
