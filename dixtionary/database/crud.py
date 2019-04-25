@@ -16,7 +16,7 @@ async def insert(entity, *, conn):
     key = entity.uuid
     data = json.dumps(vars(entity))
     await conn.hset(type_, key, data)
-    await publish(f"{type_}_INSERTED", data, conn=conn)
+    await publish(f"{type_}_INSERTED", vars(entity), conn=conn)
 
 
 async def update(entity, *, conn):
@@ -24,12 +24,11 @@ async def update(entity, *, conn):
     key = entity.uuid
     data = json.dumps(vars(entity))
     await conn.hset(type_, key, data)
-    await publish(f"{type_}_UPDATED", data, conn=conn)
+    await publish(f"{type_}_UPDATED", vars(entity), conn=conn)
 
 
 async def delete(entity, *, conn):
     type_ = type(entity).__name__
     key = entity.uuid
-    data = json.dumps(vars(entity))
     await conn.hdel(type_, key)
-    await publish(f"{type_}_DELETED", data, conn=conn)
+    await publish(f"{type_}_DELETED", vars(entity), conn=conn)

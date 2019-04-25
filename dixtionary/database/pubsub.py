@@ -1,8 +1,4 @@
-import asyncio
-
 import aioredis
-
-from loguru import logger
 
 from dixtionary.utils import json
 
@@ -15,9 +11,7 @@ async def broadcaster(**kwargs):
         while await channel.wait_message():
             data = await channel.get()
             message = json.loads(data)
-            name = message['name']
-            data = json.loads(message['data'])
-            yield name, data
+            yield message['name'], message['data']
     finally:
         redis.close()
         await redis.wait_closed()
