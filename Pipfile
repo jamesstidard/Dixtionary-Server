@@ -11,6 +11,7 @@ pytest = "*"
 python-language-server = {extras = ["all"],version = "*"}
 mypy = "*"
 flake8 = "*"
+jupyter = "*"
 
 [packages]
 sanic = "*"
