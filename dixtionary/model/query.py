@@ -143,7 +143,8 @@ class Room(g.ObjectType):
     uuid = g.ID(required=True)
     name = g.String(required=True)
     owner = g.Field(User, required=True)
-    password = g.Boolean(required=True)
+    invite_only = g.Boolean(required=True)
+    invite_code = g.String(required=False)
     members = g.List(User, required=True)
     capacity = g.Int(required=True)
     game = g.Field(Game, required=False)
@@ -153,8 +154,13 @@ class Room(g.ObjectType):
         conn = info.context["request"].app.redis
         return await select(Room, self.uuid, conn=conn)
 
-    async def resolve_password(self, info):
-        return (self.password not in {None, ''})
+    async def resolve_invite_only(self, info):
+        return (self.invite_code not in {None, ''})
+
+    async def resolve_invite_code(self, info):
+        user = info.context["current_user"]
+        if user.uuid in self.members or user.uuid == self.owner:
+            return self.invite_code
 
     async def resolve_owner(self, info):
         conn = info.context["request"].app.redis

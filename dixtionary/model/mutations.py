@@ -59,16 +59,18 @@ class RedisDeleteMutation(g.Mutation):
 class InsertRoom(RedisInsertMutation):
     class Arguments:
         name = g.String(required=True)
-        password = g.String(required=False, default_value=None)
+        invite_only = g.Boolean(required=False, default_value=False)
         capacity = g.Int(required=False, default_value=8)
 
     Output = Room
 
-    async def mutate(self, info, **kwargs):
+    async def mutate(self, info, invite_only=False, **kwargs):
         room = await RedisInsertMutation.mutate(
             self,
             info,
             **kwargs,
+            invite_only=invite_only,
+            invite_code=uuid4().hex if invite_only else None,
             owner=info.context["current_user"].uuid,
             members=[],
             chat=[],
@@ -82,19 +84,28 @@ class UpdateRoom(RedisUpdateMutation):
     class Arguments:
         uuid = g.String(required=True)
         name = g.String(required=False)
-        password = g.String(required=False)
+        invite_only = g.Boolean(required=False)
         capacity = g.Int(required=False)
 
     Output = Room
 
-    async def mutate(self, info, uuid, **kwargs):
+    async def mutate(self, info, uuid, invite_only=None, **kwargs):
         room = await select(Room, uuid, conn=info.context["request"].app.redis)
         user = info.context["current_user"]
 
         if room.owner != user.uuid:
             raise ValueError("Not your room to change")
 
-        return await RedisUpdateMutation.mutate(self, info, uuid, **kwargs)
+        if invite_only is True:
+            invite_code = uuid4().hex
+        elif invite_only is False:
+            invite_code = None
+        else:
+            invite_only = room.invite_only
+
+        return await RedisUpdateMutation.mutate(
+            self, info, uuid, invite_only=invite_only, invite_code=invite_code, **kwargs,
+        )
 
 
 class DeleteRoom(RedisDeleteMutation):

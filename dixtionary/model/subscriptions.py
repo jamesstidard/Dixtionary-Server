@@ -32,7 +32,8 @@ class RoomSubscription(g.ObjectType):
     uuid = g.ID(required=True)
     name = g.String(required=True)
     owner = g.ID(required=True)
-    password = g.String(required=False)
+    invite_only = g.Boolean(required=True)
+    invite_code = g.String(required=False)
     members = g.List(g.ID, required=True)
     capacity = g.Int(required=True)
     game = g.ID(required=False)
@@ -155,6 +156,7 @@ class Subscription(g.ObjectType):
         description='Hold on tight - if your in the room',
         uuid=g.String(required=True),
         token=g.String(required=True),
+        invite_code=g.String(required=False),
     )
     game_updated = g.Field(
         GameUpdated,
@@ -222,7 +224,7 @@ class Subscription(g.ObjectType):
     def resolve_room_deleted(root, info, uuids=None):
         return resolve(root, info, uuids=uuids)
 
-    async def resolve_join_room(root, info, uuid, token):
+    async def resolve_join_room(root, info, uuid, token, invite_code=None):
         # TODO: fix ws authorize
         serializer = Serializer(info.context["request"].app.config.SECRET)
 
@@ -233,6 +235,10 @@ class Subscription(g.ObjectType):
             raise ValueError(msg)
 
         room = await select(Room, uuid, conn=info.context["request"].app.redis)
+
+        if room.invite_only and room.invite_code != invite_code:
+            raise ValueError("Incorrect room invitation code.")
+
         room.members = [*room.members, user["uuid"]]
 
         # set to allow same person to join the room from multiple browser sessions.
