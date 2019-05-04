@@ -138,6 +138,11 @@ class ScoreInserted(ScoreSubscription):
 
 
 class Subscription(g.ObjectType):
+    connect = g.Boolean(
+        description=(
+            'A convince subscription a client can use to monitor a open connection.'
+        )
+    )
     room_inserted = g.Field(
         RoomInserted,
         description='New rooms you say?',
@@ -214,6 +219,11 @@ class Subscription(g.ObjectType):
         description='Points mean prizes',
         game_uuid=g.String(required=True),
     )
+
+    async def resolve_connect(root, info):
+        yield True
+        while True:
+            await asyncio.sleep(60)
 
     def resolve_room_inserted(root, info):
         return resolve(root, info)
