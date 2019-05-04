@@ -48,6 +48,9 @@ class HotStreamer(Streamer):
         self.future = None
         self.started = asyncio.Event()
 
+    def __await__(self):
+        return self.__aenter__().__await__()
+
     async def __aenter__(self):
         self.task = asyncio.create_task(self._target())
         await self.started.wait()
