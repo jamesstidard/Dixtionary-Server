@@ -1,17 +1,19 @@
-# current api state
-## meta schema
-http://localhost:8000/graphql?query={__schema%20{%20types%20{%20name%20kind%20description%20fields%20{%20name%20}%20}%20}}
+# Dixtionary
+A graphql server for a pictionary type online game.
 
-## login
-http://localhost:8000/graphql?query=mutation%20myFirstMutation{login(name:%22bill%22){me%20{uuid,name}}}
+Production branches are hosted at:
 
-## me and rooms
-http://localhost:8000/graphql?query={me{uuid,name},rooms{name,capacity}}
+Web App: [https://dixtionary.shitbeards.com](https://dixtionary.shitbeards.com)
+GraphQL API: [https://dixtionary.shitbeards.com/api/graphql](https://dixtionary.shitbeards.com/api/graphql)
+Subscriptions API: [wss://dixtionary.shitbeards.com/api/subscriptions](wss://dixtionary.shitbeards.com/api/subscriptions)
 
+# Prerequisites
+This server requires Python 3.7 and a redis server to run. Dependancies are also managed
+by Pipenv, so you'll need that to.
 
-## Heroku Setup
+if you have docker `docker run --rm -p 6379:6379/tcp redis:latest` should do it.
+
+# Summoning Ritual
 ```sh
-$ heroku create com-shitbeards-dixtionary-api --region eu --manifest
-$ heroku domains:add api.dixtionary.shitbeards.com
-$ git push heroku master 
+$ pipenv sync --dev
 ```
