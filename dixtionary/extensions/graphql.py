@@ -1,8 +1,16 @@
 from graphql.execution.executors.asyncio import AsyncioExecutor
+from graphql.execution.middleware import MiddlewareManager
 from graphql_ws.websockets_lib import WsLibSubscriptionServer
 from sanic_graphql import GraphQLView
 
-from dixtionary.middleware import authorize
+from dixtionary.middleware import authorize_ws, authorize_http
+
+
+class SubscriptionServer(WsLibSubscriptionServer):
+
+    async def on_connection_init(self, connection_context, op_id, payload):
+        self.connection_params = dict(payload)
+        return await super().on_connection_init(connection_context, op_id, payload)
 
 
 def patch_gql_ws():
@@ -12,17 +20,17 @@ def patch_gql_ws():
     assert BaseSubscriptionServer.execute
 
     def patched_execute(self, request_context, params):
-        try:
-            params.pop('context_value')
-            return graphql(
-                self.schema,
-                **params,
-                # middleware=[authorize],
-                context_value=dict(request=request_context),
-                allow_subscriptions=True,
-            )
-        except BaseException as e:
-            raise e
+        params.pop('context_value')
+        return graphql(
+            self.schema,
+            **params,
+            middleware=MiddlewareManager(authorize_ws, wrap_in_promise=False),
+            context_value=dict(
+                request=request_context,
+                connection_params=self.connection_params
+            ),
+            allow_subscriptions=True,
+        )
 
     BaseSubscriptionServer.execute = patched_execute
 
@@ -46,13 +54,13 @@ class GraphQL:
         @app.listener('before_server_start')
         async def before_server_start(app, loop):
             app.graphql = schema
-            app.subscription_server = WsLibSubscriptionServer(schema, loop=loop)
+            app.subscription_server = SubscriptionServer(schema, loop=loop)
 
             executor = AsyncioExecutor(loop=loop)
             view_kwargs = dict(
                 schema=schema,
                 executor=executor,
-                middleware=[authorize],
+                middleware=[authorize_http],
                 graphiql_version='0.10.2',
             )
             app.add_route(

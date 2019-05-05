@@ -1,5 +1,6 @@
-from .authentication import authorize
+from .authentication import authorize_http, authorize_ws
 
 __all__ = [
-    'authorize',
+    'authorize_http',
+    'authorize_ws',
 ]
