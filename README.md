@@ -16,4 +16,5 @@ if you have docker `docker run --rm -p 6379:6379/tcp redis:latest` should do it.
 # Summoning Ritual
 ```sh
 $ pipenv sync --dev
+$ pipenv run dixtionary
 ```
