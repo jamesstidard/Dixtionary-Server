@@ -8,7 +8,7 @@ Production branches are hosted at:
 - Subscriptions API: [wss://dixtionary.shitbeards.com/api/subscriptions](wss://dixtionary.shitbeards.com/api/subscriptions)
 
 # Prerequisites
-This server requires Python 3.7 and a redis server to run. Dependancies are also managed
+This server requires Python 3.7 and a redis server to run. Dependencies are also managed
 by Pipenv, so you'll need that to.
 
 if you have docker `docker run --rm -p 6379:6379/tcp redis:latest` should do it.
