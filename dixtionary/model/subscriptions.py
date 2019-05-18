@@ -140,83 +140,71 @@ class ScoreInserted(ScoreSubscription):
 class Subscription(g.ObjectType):
     connect = g.Boolean(
         description=(
-            'A convince subscription a client can use to monitor a open connection.'
+            "A convince subscription a client can use to monitor a open connection."
         )
     )
-    room_inserted = g.Field(
-        RoomInserted,
-        description='New rooms you say?',
-    )
+    room_inserted = g.Field(RoomInserted, description="New rooms you say?")
     room_updated = g.Field(
         RoomUpdated,
-        description='Updated rooms? do tell...',
+        description="Updated rooms? do tell...",
         uuids=g.List(g.String, required=False),
     )
     room_deleted = g.Field(
-        RoomDeleted,
-        description='Room? Where?',
-        uuids=g.List(g.String, required=False),
+        RoomDeleted, description="Room? Where?", uuids=g.List(g.String, required=False)
     )
     join_room = g.Boolean(
-        description='Hold on tight - if your in the room',
+        description="Hold on tight - if your in the room",
         uuid=g.String(required=True),
         token=g.String(required=True),
         invite_code=g.String(required=False),
     )
     game_updated = g.Field(
         GameUpdated,
-        description='The games industry doesn\'t stand still',
+        description="The games industry doesn't stand still",
         uuids=g.List(g.String, required=False),
     )
     game_deleted = g.Field(
-        GameDeleted,
-        description='GG WP',
-        uuids=g.List(g.String, required=False),
+        GameDeleted, description="GG WP", uuids=g.List(g.String, required=False)
     )
     round_updated = g.Field(
         RoundUpdated,
-        description='I\'m low on quips',
+        description="I'm low on quips",
         uuids=g.List(g.String, required=False),
     )
     round_deleted = g.Field(
         RoundDeleted,
-        description='Round and round we go',
+        description="Round and round we go",
         uuids=g.List(g.String, required=False),
     )
     turn_updated = g.Field(
         TurnUpdated,
-        description='Upturned',
+        description="Upturned",
         token=g.String(required=True),
         uuids=g.List(g.String, required=False),
     )
     turn_deleted = g.Field(
         TurnDeleted,
-        description='ok, ok, wrap it up',
+        description="ok, ok, wrap it up",
         uuids=g.List(g.String, required=False),
     )
-    user_inserted = g.Field(
-        UserInserted,
-        description='New around these parts.',
-    )
+    user_inserted = g.Field(UserInserted, description="New around these parts.")
     user_updated = g.Field(
         UserUpdated,
-        description='New year; new you.',
+        description="New year; new you.",
         uuids=g.List(g.String, required=False),
     )
     user_deleted = g.Field(
-        UserDeleted,
-        description='Banished',
-        uuids=g.List(g.String, required=False),
+        UserDeleted, description="Banished", uuids=g.List(g.String, required=False)
     )
     message_inserted = g.Field(
         MessageInserted,
-        description='What did you say?',
+        description="What did you say?",
         room_uuid=g.String(required=False),
         token=g.String(required=False),
     )
     score_inserted = g.Field(
         ScoreInserted,
-        description='Points mean prizes',
+        description="Points mean prizes",
         game_uuid=g.String(required=True),
     )
 
@@ -295,7 +283,7 @@ class Subscription(g.ObjectType):
             raise ValueError(msg)
 
         async for turn in resolve(root, info, uuids=uuids):
-            if turn.artist != user['uuid']:
+            if turn.artist != user["uuid"]:
                 turn.choices = []
                 turn.choice = None
 
@@ -327,12 +315,14 @@ class Subscription(g.ObjectType):
 
         async for message in resolve(root, info):
             if message.room == room_uuid:
-                if not user or (message.correctGuess and message.author != user['uuid']):
-                    message.body = '*******'
+                if not user or (
+                    message.correctGuess and message.author != user["uuid"]
+                ):
+                    message.body = "*******"
                 yield message
 
     async def resolve_score_inserted(root, info, game_uuid):
-        conn = info.context['request'].app.redis
+        conn = info.context["request"].app.redis
         async for score in resolve(root, info):
             game = await select(Game, game_uuid, conn=conn)
             rounds = [await select(Round, r, conn=conn) for r in game.rounds]

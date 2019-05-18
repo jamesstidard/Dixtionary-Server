@@ -1,5 +1,3 @@
-
-
 async def exists(entity_type, uuid, *, conn):
     return await conn.hexists(entity_type.__name__, uuid)
 

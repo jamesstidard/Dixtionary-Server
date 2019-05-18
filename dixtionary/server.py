@@ -15,9 +15,9 @@ async def create_app(config):
     GraphQL(app, schema=schema)
     Redis(app, address=app.config.REDIS_URL)
 
-    @app.route('/')
+    @app.route("/")
     def handle_request(request):
-        return redirect('/graphql')
+        return redirect("/graphql")
 
     # Favicon
     # app.static('/favicon.ico', 'favicon.ico')

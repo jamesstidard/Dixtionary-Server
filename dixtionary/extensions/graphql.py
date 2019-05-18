@@ -9,11 +9,12 @@ def patch_gql_ws():
     # https://github.com/graphql-python/graphql-ws/pull/10
     from graphql_ws.base import BaseSubscriptionServer
     from graphql import graphql
+
     assert BaseSubscriptionServer.execute
 
     def patched_execute(self, request_context, params):
         try:
-            params.pop('context_value')
+            params.pop("context_value")
             return graphql(
                 self.schema,
                 **params,
@@ -33,17 +34,16 @@ async def _websocket_handler(request, ws):
 
 
 class GraphQL:
-
     def __init__(self, app, schema):
         patch_gql_ws()
 
         app.add_websocket_route(
             handler=_websocket_handler,
-            uri='/subscriptions',
-            subprotocols=['graphql-ws'],
+            uri="/subscriptions",
+            subprotocols=["graphql-ws"],
         )
 
-        @app.listener('before_server_start')
+        @app.listener("before_server_start")
         async def before_server_start(app, loop):
             app.graphql = schema
             app.subscription_server = WsLibSubscriptionServer(schema, loop=loop)
@@ -53,13 +53,9 @@ class GraphQL:
                 schema=schema,
                 executor=executor,
                 middleware=[authorize],
-                graphiql_version='0.10.2',
+                graphiql_version="0.10.2",
             )
+            app.add_route(GraphQLView.as_view(**view_kwargs, graphiql=True), "/graphql")
             app.add_route(
-                GraphQLView.as_view(**view_kwargs, graphiql=True),
-                '/graphql'
-            )
-            app.add_route(
-                GraphQLView.as_view(**view_kwargs, batch=True),
-                '/graphql/batch'
+                GraphQLView.as_view(**view_kwargs, batch=True), "/graphql/batch"
             )

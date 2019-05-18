@@ -24,7 +24,6 @@ async def first_completed(tasks):
 
 
 class HotAsyncIterator:
-
     def __init__(self, queue):
         self.queue = queue
 
@@ -38,7 +37,6 @@ class HotAsyncIterator:
 
 
 class HotStreamer(Streamer):
-
     def __init__(self, source, maxlen=1):
         self.source = source
         self.maxlen = maxlen
@@ -87,7 +85,6 @@ class HotStreamer(Streamer):
 
 
 class HotStream(Stream):
-
     def __init__(self, source, maxlen=1):
         self.source = source
         self.maxlen = maxlen

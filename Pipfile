@@ -9,9 +9,8 @@ dixtionary = "python -m dixtionary"
 [dev-packages]
 pytest = "*"
 python-language-server = {extras = ["all"],version = "*"}
-mypy = "*"
-flake8 = "*"
 jupyter = "*"
+black = "*"
 
 [packages]
 sanic = "*"

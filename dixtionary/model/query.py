@@ -116,7 +116,7 @@ class Message(g.ObjectType):
     time = g.DateTime(required=True)
     body = g.String(required=True)
     author = g.Field(User, required=True)
-    room = g.Field('dixtionary.model.query.Room', required=True)
+    room = g.Field("dixtionary.model.query.Room", required=True)
     correctGuess = g.Boolean(required=True)
 
     async def resolve(self, info):
@@ -126,7 +126,7 @@ class Message(g.ObjectType):
     async def resolve_body(self, info):
         user = info.context["current_user"]
         if self.correctGuess and self.author != user.uuid:
-            return '*******'
+            return "*******"
         else:
             return self.body
 
@@ -155,7 +155,7 @@ class Room(g.ObjectType):
         return await select(Room, self.uuid, conn=conn)
 
     async def resolve_invite_only(self, info):
-        return (self.invite_code not in {None, ''})
+        return self.invite_code not in {None, ""}
 
     async def resolve_invite_code(self, info):
         user = info.context["current_user"]
@@ -177,45 +177,29 @@ class Room(g.ObjectType):
 
 
 class Query(g.ObjectType):
-    me = g.Field(
-        User,
-        required=False,
-        description='Me, myself & I',
-    )
+    me = g.Field(User, required=False, description="Me, myself & I")
     users = g.List(
-        User,
-        description='Bed fellows',
-        uuids=g.List(g.String, required=False),
+        User, description="Bed fellows", uuids=g.List(g.String, required=False)
     )
     rooms = g.List(
-        Room,
-        description='Game rooms',
-        uuids=g.List(g.String, required=False),
+        Room, description="Game rooms", uuids=g.List(g.String, required=False)
     )
     games = g.List(
         Game,
-        description='What do you do in a room. Play a game',
+        description="What do you do in a room. Play a game",
         uuids=g.List(g.String, required=False),
     )
     rounds = g.List(
-        Round,
-        description='ding ding ding',
-        uuids=g.List(g.String, required=False),
+        Round, description="ding ding ding", uuids=g.List(g.String, required=False)
     )
     turns = g.List(
-        Turn,
-        description='after you',
-        uuids=g.List(g.String, required=False),
+        Turn, description="after you", uuids=g.List(g.String, required=False)
     )
     messages = g.List(
-        Message,
-        description='Chit-chat',
-        room_uuid=g.String(required=True),
+        Message, description="Chit-chat", room_uuid=g.String(required=True)
     )
     scores = g.List(
-        Score,
-        description='Everything\'s a compition',
-        game_uuid=g.String(required=True),
+        Score, description="Everything's a compition", game_uuid=g.String(required=True)
     )
 
     def resolve_me(self, info):
@@ -258,15 +242,17 @@ class Query(g.ObjectType):
         return turns
 
     async def resolve_messages(self, info, room_uuid):
-        conn = info.context['request'].app.redis
+        conn = info.context["request"].app.redis
         room = await select(Room, room_uuid, conn=conn)
         return [await select(Message, uuid, conn=conn) for uuid in room.chat]
 
     async def resolve_scores(self, info, game_uuid):
-        with await info.context['request'].app.redis as conn:
+        with await info.context["request"].app.redis as conn:
             game = await select(Game, game_uuid, conn=conn)
             rounds = [await select(Round, r, conn=conn) for r in game.rounds]
             turns = [await select(Turn, t, conn=conn) for r in rounds for t in r.turns]
-            scores = [await select(Score, s, conn=conn) for t in turns for s in t.scores]
+            scores = [
+                await select(Score, s, conn=conn) for t in turns for s in t.scores
+            ]
 
         return scores

@@ -27,7 +27,6 @@ class Login(g.Mutation):
 
 
 class RedisInsertMutation(g.Mutation):
-
     async def mutate(self, info, **kwargs):
         cls = info.return_type.graphene_type
         obj = cls(uuid=uuid4().hex, **kwargs)
@@ -36,7 +35,6 @@ class RedisInsertMutation(g.Mutation):
 
 
 class RedisUpdateMutation(g.Mutation):
-
     async def mutate(self, info, uuid, **kwargs):
         cls = info.return_type.graphene_type
         obj = await select(cls, uuid, conn=info.context["request"].app.redis)
@@ -104,7 +102,7 @@ class UpdateRoom(RedisUpdateMutation):
             invite_only = room.invite_only
 
         return await RedisUpdateMutation.mutate(
-            self, info, uuid, invite_only=invite_only, invite_code=invite_code, **kwargs,
+            self, info, uuid, invite_only=invite_only, invite_code=invite_code, **kwargs
         )
 
 
@@ -145,25 +143,15 @@ class InsertMessage(RedisInsertMutation):
         correct = False
         turn = await current_turn(room_uuid=room_uuid, conn=redis)
         correct = (
-            turn and
-            turn.choice and
-            fuzz.ratio(turn.choice.lower(), body.lower()) >= 95
+            turn and turn.choice and fuzz.ratio(turn.choice.lower(), body.lower()) >= 95
         )
 
         if correct and turn.artist == user.uuid:
             raise ValueError("Don't give way the answer")
 
         if correct:
-            user_score = Score(
-                uuid=uuid4().hex,
-                user=user,
-                value=1,
-            )
-            artist_score = Score(
-                uuid=uuid4().hex,
-                user=turn.artist,
-                value=1
-            )
+            user_score = Score(uuid=uuid4().hex, user=user, value=1)
+            artist_score = Score(uuid=uuid4().hex, user=turn.artist, value=1)
             turn.scores += [user_score, artist_score]
             await insert(user_score, conn=redis)
             await insert(artist_score, conn=redis)
@@ -176,7 +164,7 @@ class InsertMessage(RedisInsertMutation):
             time=datetime.utcnow(),
             author=user,
             room=room,
-            correctGuess=correct
+            correctGuess=correct,
         )
 
         room.chat.append(msg)
@@ -222,9 +210,7 @@ class UpdateTurn(RedisUpdateMutation):
                 raise ValueError("Not your turn to draw.")
 
             if not turn.choice:
-                raise ValueError(
-                    f"Need to choose something to draw first."
-                )
+                raise ValueError(f"Need to choose something to draw first.")
 
             if not turn.remaining:
                 raise ValueError(

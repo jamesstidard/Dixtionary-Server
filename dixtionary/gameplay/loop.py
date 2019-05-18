@@ -11,7 +11,7 @@ from dixtionary.database import select, insert, update, delete
 from dixtionary.utils.asynchronous import cancel_tasks, first_completed
 
 
-with open('dixtionary/gameplay/dictionary.txt', 'r') as fp:
+with open("dixtionary/gameplay/dictionary.txt", "r") as fp:
     DICTIONARY = fp.read().splitlines()
 
 
@@ -36,7 +36,7 @@ async def artist_choice(app, *, turn_uuid):
     if turn.choice:
         return turn.choice
 
-    async for data in app.subscribe('TURN_UPDATED'):
+    async for data in app.subscribe("TURN_UPDATED"):
         turn = Turn(**data)
 
         if turn.uuid == turn_uuid and turn.choice:
@@ -70,7 +70,7 @@ async def turn_scores_change(app, *, turn_uuid):
     turn = await select(Turn, turn_uuid, conn=app.redis)
     seen_scores = set(turn.scores)
 
-    async for data in app.subscribe('TURN_UPDATED'):
+    async for data in app.subscribe("TURN_UPDATED"):
         turn = Turn(**data)
         changed = seen_scores != set(turn.scores)
         seen_scores = set(turn.scores)
@@ -83,7 +83,7 @@ async def room_members_change(app, *, room_uuid):
     room = await select(Room, room_uuid, conn=app.redis)
     seen_members = set(room.members)
 
-    async for data in app.subscribe('ROOM_UPDATED'):
+    async for data in app.subscribe("ROOM_UPDATED"):
         turn = Room(**data)
         changed = seen_members != set(room.members)
         seen_members = set(room.members)
@@ -118,11 +118,7 @@ async def host_game(app, *, room_uuid):
     try:
         room = await select(Room, room_uuid, conn=app.redis)
 
-        game = Game(
-            uuid=uuid4().hex,
-            complete=False,
-            rounds=[],
-        )
+        game = Game(uuid=uuid4().hex, complete=False, rounds=[])
         room.game = game
 
         logger.info(f"CREATING GAME {game.uuid}")
@@ -131,10 +127,7 @@ async def host_game(app, *, room_uuid):
 
         for round_number in range(1, 9):
             logger.info(f"STARTING ROUND {round_number} {room_uuid}")
-            round_ = Round(
-                uuid=uuid4().hex,
-                turns=[],
-            )
+            round_ = Round(uuid=uuid4().hex, turns=[])
 
             await insert(round_, conn=app.redis)
             game = await select(Game, game.uuid, conn=app.redis)
@@ -153,9 +146,7 @@ async def host_game(app, *, room_uuid):
                 timeout = asyncio.create_task(
                     countdown(app, seconds=10, turn_uuid=turn.uuid)
                 )
-                choice = asyncio.create_task(
-                    artist_choice(app, turn_uuid=turn.uuid)
-                )
+                choice = asyncio.create_task(artist_choice(app, turn_uuid=turn.uuid))
                 artist_leaves = asyncio.create_task(
                     member_leaves(app, room_uuid=room_uuid, member_uuid=turn.artist)
                 )
@@ -199,7 +190,9 @@ async def host_game(app, *, room_uuid):
         game = await select(Game, game.uuid, conn=app.redis)
         rounds = [await select(Round, r, conn=app.redis) for r in game.rounds]
         turns = [await select(Turn, t, conn=app.redis) for r in rounds for t in r.turns]
-        scores = [await select(Score, s, conn=app.redis) for t in turns for s in t.scores]
+        scores = [
+            await select(Score, s, conn=app.redis) for t in turns for s in t.scores
+        ]
 
         room = await select(Room, room_uuid, conn=app.redis)
         room.game = None
@@ -213,7 +206,7 @@ async def members_change(app, *, room_uuid, last_known=None):
     if last_known is None:
         last_known = {object()}
 
-    async for data in app.subscribe('ROOM_UPDATED'):
+    async for data in app.subscribe("ROOM_UPDATED"):
         room = Room(**data)
         if room.uuid != room_uuid:
             continue
@@ -227,7 +220,7 @@ async def member_leaves(app, *, room_uuid, member_uuid):
     if member_uuid not in room.members:
         return True
 
-    async for data in app.subscribe('ROOM_UPDATED'):
+    async for data in app.subscribe("ROOM_UPDATED"):
         room = Room(**data)
         if room.uuid != room_uuid:
             continue
@@ -239,9 +232,7 @@ async def member_leaves(app, *, room_uuid, member_uuid):
 async def run(app, *, room_uuid):
     logger.info(f"GAME LOOP STARTED {room_uuid}")
     game = None
-    membership_changed = asyncio.create_task(
-        members_change(app, room_uuid=room_uuid)
-    )
+    membership_changed = asyncio.create_task(members_change(app, room_uuid=room_uuid))
 
     pending = {membership_changed}
 
