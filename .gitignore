@@ -1,6 +1,7 @@
 .idea/*
 *.sublime-*
 .vscode/
+scratch/*
 
 database/data
 
