@@ -4,6 +4,7 @@ COPY . /app
 WORKDIR /app
 
 RUN pip install -U poetry
+RUN apt-get update -y && apt-get install gcc
 RUN poetry config virtualenvs.create false
 RUN poetry install
 
