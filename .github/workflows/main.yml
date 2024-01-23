@@ -16,6 +16,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: |
+          mkdir --parents /etc/docker/certs.d/hub.stidard.dev/
           openssl s_client -showcerts -connect hub.stidard.dev < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /etc/docker/certs.d/hub.stidard.dev/ca.crt
           docker build -t hub.stidard.dev/dixtionary-server:latest .
           docker push hub.stidard.dev/dixtionary-server:latest
